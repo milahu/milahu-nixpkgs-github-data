@@ -1,0 +1,1711 @@
+[
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/2",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "trace: warning: Use `stdenv.tests` instead. `passthru` is a `mkDerivation` detail.",
+    "body": "when i pass derivations to `lib.traceSeq` then my build log is flooded with\r\n\r\n```\r\ntrace: warning: Use `stdenv.tests` instead. `passthru` is a `mkDerivation` detail.\r\n```\r\n\r\nthe warning is caused by [pkgs/stdenv/generic/default.nix](https://github.com/milahu/nixpkgs/blob/master/pkgs/stdenv/generic/default.nix)\r\n\r\n```\r\n      passthru.tests = lib.warn \"Use `stdenv.tests` instead. `passthru` is a `mkDerivation` detail.\" stdenv.tests;\r\n```",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2023-08-11T13:54:47Z",
+    "updated_at": "2023-08-11T13:54:47Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/3",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "fetchurl should be more quiet",
+    "body": "currently, fetchurl is too verbose\r\n\r\n```\r\nbuilding '/nix/store/ig0lb4h2ayh20qlm6xnn015v0wim0s94-cli-1.74.4.tgz.drv'...\r\n\r\ntrying https://registry.npmjs.org/@sentry/cli/-/cli-1.74.4.tgz\r\n  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current\r\n                                 Dload  Upload   Total   Spent    Left  Speed\r\n```\r\n\r\nthe `building ...` line is default output for all derivations\r\nbut the following four lines are spam in my terminal\r\n\r\nthe `trying ...` line is useless\r\n\r\nthe 3 other lines are produced by curl, these can be removed with `curl -s` = `curl --silent`\r\n\r\n```\r\n$ curl -O https://registry.npmjs.org/@sentry/cli/-/cli-1.74.4.tgz \r\n  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current\r\n                                 Dload  Upload   Total   Spent    Left  Speed\r\n100 27658  100 27658    0     0  13630      0  0:00:02  0:00:02 --:--:-- 13638\r\n```\r\n\r\nwhen the fetch succeeds, it should print nothing.\r\nonly when the fetch fails, it should print something (the url, the error code, ...)\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2023-08-14T13:18:54Z",
+    "updated_at": "2023-08-14T13:18:54Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/4",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "add fetchTorrent",
+    "body": "allow fetching sources from bittorrent\r\n\r\n- https://github.com/NixOS/nixpkgs/pull/212930 - based on transmission\r\n- https://github.com/NixOS/nixpkgs/pull/217151 - based on aria2",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2023-08-14T13:40:08Z",
+    "updated_at": "2023-08-14T13:40:08Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/5",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "stdenv.mkDerivation: fix unpackPhase for archives with bad permissions",
+    "body": "this fails in unpackPhase, because the `lib/` folder in https://registry.npmjs.org/pngjs/-/pngjs-6.0.0.tgz has mode 0444, but should have mode 0555\r\n\r\nwhen the executable flag is missing on a directory, its contents cannot be listed, which gives the `Cannot open: Permission denied` errors\r\n\r\n```\r\nnix-build -E '\r\n  with import <nixpkgs> { };\r\n  stdenv.mkDerivation {\r\n    name = \"x\";\r\n    src = fetchurl {\r\n      url = \"https://registry.npmjs.org/pngjs/-/pngjs-6.0.0.tgz\";\r\n      hash = \"sha512-TRzzuFRRmEoSW/p1KVAmiOgPco2Irlah+bGFCeNfJXxxYGwSw7YwAOAcd7X28K/m5bjBWKsC29KyoMfHbypayg==\";\r\n    };\r\n    buildPhase = \"ls -l $src; exit 1\";\r\n  }'\r\n```\r\n\r\n\r\n```\r\nthis derivation will be built:\r\n  /nix/store/5nvbj071zy4bdxx73gw5f6dlhxcb8fw3-x.drv\r\nbuilding '/nix/store/5nvbj071zy4bdxx73gw5f6dlhxcb8fw3-x.drv'...\r\nunpacking sources\r\nunpacking source archive /nix/store/jb1wi55v5z2gzx2rjma0v5323fij6wjp-pngjs-6.0.0.tgz\r\ntar: package/lib/bitmapper.js: Cannot open: Permission denied\r\ntar: package/lib/bitpacker.js: Cannot open: Permission denied\r\ntar: package/lib/chunkstream.js: Cannot open: Permission denied\r\ntar: package/lib/constants.js: Cannot open: Permission denied\r\ntar: package/lib/crc.js: Cannot open: Permission denied\r\ntar: package/lib/filter-pack.js: Cannot open: Permission denied\r\ntar: package/lib/filter-parse-async.js: Cannot open: Permission denied\r\ntar: package/lib/filter-parse-sync.js: Cannot open: Permission denied\r\ntar: package/lib/filter-parse.js: Cannot open: Permission denied\r\ntar: package/lib/format-normaliser.js: Cannot open: Permission denied\r\ntar: package/lib/interlace.js: Cannot open: Permission denied\r\ntar: package/lib/packer-async.js: Cannot open: Permission denied\r\ntar: package/lib/packer-sync.js: Cannot open: Permission denied\r\ntar: package/lib/packer.js: Cannot open: Permission denied\r\ntar: package/lib/paeth-predictor.js: Cannot open: Permission denied\r\ntar: package/lib/parser-async.js: Cannot open: Permission denied\r\ntar: package/lib/parser-sync.js: Cannot open: Permission denied\r\ntar: package/lib/parser.js: Cannot open: Permission denied\r\ntar: package/lib/png-sync.js: Cannot open: Permission denied\r\ntar: package/lib/png.js: Cannot open: Permission denied\r\ntar: package/lib/sync-inflate.js: Cannot open: Permission denied\r\ntar: package/lib/sync-reader.js: Cannot open: Permission denied\r\ntar: Exiting with failure status due to previous errors\r\ndo not know how to unpack source archive /nix/store/jb1wi55v5z2gzx2rjma0v5323fij6wjp-pngjs-6.0.0.tgz\r\nerror: builder for '/nix/store/5nvbj071zy4bdxx73gw5f6dlhxcb8fw3-x.drv' failed with exit code 1;\r\n```\r\n\r\n## why\r\n\r\n```\r\ncd $(mktemp -d)\r\n\r\nwget https://registry.npmjs.org/pngjs/-/pngjs-6.0.0.tgz\r\n\r\ntar xf *.tgz --warning=no-timestamp --warning=no-unknown-keyword --no-same-owner --no-same-permissions --delay-directory-restore\r\n\r\nstat -c%a package/\r\n# 644\r\n\r\nchmod -R +wX package/\r\n\r\nstat -c%a package/\r\n# 755\r\n```\r\n\r\n## fix\r\n\r\n1\\. add more arguments to `tar xf \"$fn\" --warning=no-timestamp`\r\n\r\nfor example `tar xf \"$fn\" --warning=no-timestamp --warning=no-unknown-keyword --no-same-owner --no-same-permissions --delay-directory-restore`\r\n\r\n2\\. after `tar xf` run `chmod -R +X \"${sourceRoot}\"` to add the executable flag on all directories. this can be merged with `chmod -R +w \"${sourceRoot}\"` to `chmod -R +wX \"${sourceRoot}\"`\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2023-08-14T14:52:18Z",
+    "updated_at": "2023-08-14T14:59:08Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/6",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "use granular caching by default = create one derivation per dependency",
+    "body": "buildRustPackage should build one derivation per dependency\r\n\r\nsee also\r\n\r\n- https://nixos.wiki/wiki/Rust#Packaging_Rust_projects_with_nix\r\n   - [crate2nix](https://github.com/kolloch/crate2nix) - Derivations: Many\r\n     - in nixpkgs: https://github.com/NixOS/nixpkgs/blob/master/pkgs/development/tools/rust/crate2nix/default.nix\r\n   - [cargo2nix](https://github.com/cargo2nix/cargo2nix) - Derivations: Many\r\n     - in NUR: https://github.com/milahu/nur-packages/blob/master/pkgs/development/tools/rust/cargo2nix/cargo2nix.nix\r\n   - Derivations: How many derivations does this solution use to compile Rust code?\r\n      - “1” means the project and all its dependencies are compiled in one derivation.\r\n      - “2” means all dependencies are moved into a separate derivation, so the project can be updated independently, but any change to the set of dependencies rebuilds everything.\r\n      - “Many” means **each dependency is built in its own derivation**, so changes to dependencies only do the minimal amount of rebuilding necessary (and, ideally, different projects can share dependencies, although I haven’t checked if this works in practice).\r\n- https://discourse.nixos.org/t/incremental-builds/9988\r\n   - https://github.com/edolstra/nix-make - granular caching for C projects\r\n   - https://github.com/nmattia/snack - Nix-based incremental build tool for Haskell projects\r\n- https://discourse.nixos.org/t/caching-local-compilation-results-for-all-compiled-packages/3516/5\r\n   - https://github.com/edolstra/nix-make - granular caching for C projects\r\n- https://discourse.nixos.org/t/distributed-nix-build-split-large-package-into-many-derivations/15979\r\n   - https://news.ycombinator.com/item?id=9256844 - bazel\r\n- https://nixos.wiki/wiki/CCache\r\n\r\nrelated: cache by build phase https://discourse.nixos.org/t/splitbuildinstall-split-buildphase-and-installphase-for-large-packages/15874\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2023-08-14T17:19:48Z",
+    "updated_at": "2023-11-18T18:43:15Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/7",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "cups \"find new printers\" function is broken for network printers",
+    "body": "\r\nthe cups \"find new printers\" functions tries to add network printers with `dnssd` addresses, but they dont work\r\n\r\n```\r\ndnssd://Brother%20HL-L5100DN%20series%20%5B30055cb7e60b%5D._ipp._tcp.local/?uuid=e3248000-80ce-11db-8000-30055cb7e60b\r\ndnssd://Brother%20HL-L5100DN%20series%20%5B3c2af4accce6%5D._ipp._tcp.local/?uuid=e3248000-80ce-11db-8000-3c2af4accce6\r\n```\r\n\r\nmy network printers  only work when i set the IP address, for example `socket://192.168.178.134`\r\n\r\nippfind\r\n\r\n```\r\n$ ippfind\r\nipp://BRN30055CB7E60B.local:631/ipp/print\r\nipp://BRN3C2AF4ACCCE6.local:631/ipp/print\r\n\r\n$ ping BRN30055CB7E60B.local\r\nping: BRN30055CB7E60B.local: System error\r\n\r\n$ ping BRN3C2AF4ACCCE6.local \r\nping: BRN3C2AF4ACCCE6.local: System error\r\n```\r\n\r\nnmap\r\n\r\n```\r\n$ nmap -p 631 \"192.168.178.*\"\r\n\r\nNmap scan report for 192.168.178.134\r\nHost is up (0.0014s latency).\r\n\r\nPORT    STATE SERVICE\r\n631/tcp open  ipp\r\n\r\nNmap scan report for 192.168.178.175\r\nHost is up (0.017s latency).\r\n\r\nPORT    STATE SERVICE\r\n631/tcp open  ipp\r\n```\r\n\r\n```\r\n$ ping -c1 192.168.178.134\r\nPING 192.168.178.134 (192.168.178.134) 56(84) bytes of data.\r\n64 bytes from 192.168.178.134: icmp_seq=1 ttl=255 time=2.54 ms\r\n\r\n$ ping -c1 192.168.178.175\r\nPING 192.168.178.175 (192.168.178.175) 56(84) bytes of data.\r\n64 bytes from 192.168.178.175: icmp_seq=1 ttl=255 time=1.56 ms\r\n```\r\n\r\nresolv.conf\r\n\r\n```\r\n$ cat /etc/resolv.conf\r\n# Generated by resolvconf\r\nsearch lan\r\nnameserver 8.8.8.8\r\nnameserver 1.1.1.1\r\nnameserver 192.168.178.1\r\noptions edns0\r\n```\r\n\r\nmaybe the `.local` domain should be `.lan`? - no:\r\n\r\n```\r\n$ ping BRN30055CB7E60B.lan\r\nping: BRN30055CB7E60B.lan: Name or service not known\r\n```\r\n\r\nkeywords: DNS, LAN\r\n\r\nrelated issues\r\n\r\n- https://duckduckgo.com/?q=nixos+cups+network+printer+not+working\r\n- https://github.com/NixOS/nixpkgs/issues/118628\r\n- https://github.com/NixOS/nixpkgs/issues/5409\r\n- https://discourse.nixos.org/t/cups-can-add-printer-and-driver-ok-but-then-cant-find-the-printer-to-actually-spool-the-job/20928/9\r\n- https://discourse.nixos.org/t/install-cups-driver-for-brother-printer/7169\r\n- https://discourse.nixos.org/t/cups-unable-to-automatically-locate-the-network-printer/18813\r\n- https://github.com/NixOS/nixpkgs/issues/13901\r\n- https://nixos.wiki/wiki/Printing\r\n- https://github.com/NixOS/nixpkgs/issues/27139\r\n- https://www.reddit.com/r/NixOS/comments/t76ysf/setting_up_network_pdf_printer_on_nixos/\r\n- https://discourse.nixos.org/t/printers-they-work/17545\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2023-08-16T10:30:37Z",
+    "updated_at": "2023-08-16T10:30:37Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/8",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "get the actual phases when building a package in nix-shell",
+    "body": "for example, where can i see that the build would use `cmakeConfigurePhase`\r\n\r\nrelated\r\n\r\n- https://github.com/NixOS/nixpkgs/blob/master/doc/stdenv/stdenv.chapter.md#building-a-stdenv-package-in-nix-shell-sec-building-stdenv-package-in-nix-shell\r\n   - https://github.com/NixOS/nixpkgs/pull/216650\r\n- https://nixos.wiki/wiki/Nixpkgs/Create_and_debug_packages#Using_nix-shell_for_package_development\r\n   - `typeset -f genericBuild | grep 'phases='` does not list all phases. `cmakeConfigurePhase` is missing in `phases=\"${prePhases[*]:-} unpackPhase patchPhase ${preConfigurePhases[*]:-} configurePhase ${preBuildPhases[*]:-} buildPhase checkPhase ${preInstallPhases[*]:-} installPhase ${preFixupPhases[*]:-} fixupPhase installCheckPhase ${preDistPhases[*]:-} distPhase ${postPhases[*]:-}\";` ... and `cmakeConfigurePhase` is not in `echo ${preConfigurePhases[*]:-} ${preBuildPhases[*]:-}`\r\n- https://nixos.wiki/wiki/Development_environment_with_nix-shell#stdenv.mkDerivation\r\n\r\nhttps://github.com/NixOS/nixpkgs/pull/216650#discussion_r1109993391\r\n\r\n<blockquote>\r\n\r\n```\r\neval ${unpackPhase:-unpackPhase}\r\ncd $sourceRoot\r\neval ${patchPhase:-patchPhase}\r\neval ${configurePhase:-configurePhase}\r\n```\r\n\r\nthis fails for `cmake` builds where we need `cmakeConfigurePhase`\r\n\r\nideally this should be generic, ie something like `for phase in $phases; do eval $phase; done`\r\n\r\n</blockquote>\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2023-08-18T20:02:51Z",
+    "updated_at": "2023-08-18T20:02:51Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/9",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "ghostscript with setpdfwrite setdistillerparams: Error: /undefined in .setpdfwrite",
+    "body": "im trying to use ghostscript to compress a PDF file\r\nbut when i add the option `-c \".setpdfwrite <</AlwaysEmbed [ ]>> setdistillerparams\"`\r\nthen ghostscript throws `Error: /undefined in .setpdfwrite`\r\n\r\nso either a compile-time feature of ghostscript is missing\r\nor a runtime dependency is missing\r\n\r\nbased on https://stackoverflow.com/questions/10450120/optimize-pdf-files\r\n\r\n```\r\n$ gs -sDEVICE=pdfwrite -o output.pdf -c \".setpdfwrite <</AlwaysEmbed [ ]>> setdistillerparams\" -f input.pdf\r\n\r\nGPL Ghostscript 10.01.1 (2023-03-27)\r\nCopyright (C) 2023 Artifex Software, Inc.  All rights reserved.\r\nThis software is supplied under the GNU AGPLv3 and comes with NO WARRANTY:\r\nsee the file COPYING for details.\r\nError: /undefined in .setpdfwrite\r\nOperand stack:\r\n\r\nExecution stack:\r\n   %interp_exit   .runexec2   --nostringval--   --nostringval--   --nostringval--   2   %stopped_push   --nostringval--   --nostringval--   --nostringval--   false   1   %stopped_push   .runexec2   --nostringval--   --nostringval--   --nostringval--   2   %stopped_push   --nostringval--\r\nDictionary stack:\r\n   --dict:768/1123(ro)(G)--   --dict:0/20(G)--   --dict:75/200(L)--\r\nCurrent allocation mode is local\r\nLast OS error: No such file or directory\r\nGPL Ghostscript 10.01.1: Unrecoverable error, exit code 1\r\n```\r\n\r\nwhat causes the `No such file or directory` error?\r\n\r\nstrace\r\n\r\n```\r\nstrace -f gs -sDEVICE=pdfwrite -o output.pdf -c \".setpdfwrite <</AlwaysEmbed [ ]>> setdistillerparams\" -f input.pdf 2>&1 | less -S \r\n```\r\n\r\nmany \"no such file\" errors for the file `Decoding/Unicode`, which is provided by `ghostscriptX` in nixpkgs\r\n\r\n```\r\n$ nix-locate Decoding/Unicode\r\nghostscriptX.out                                137,541 r /nix/store/gczfw2iqzp95b4dlggvj87d03mciia0z-ghostscript-9.53.3/share/ghostscript/9.53.3/Resource/Decoding/Unicode\r\n```\r\n\r\nbut ghostscriptX fails too\r\n\r\n```\r\nError: /undefined in .setpdfwrite\r\nLast OS error: Resource temporarily unavailable\r\n```",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2023-08-19T11:35:56Z",
+    "updated_at": "2023-08-21T12:34:54Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/10",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "use sha256 SRI hash by default: error: empty hash requires explicit hash type",
+    "body": "`outputHash = \"\";` in a fixed-output-derivation produces the error\r\n\r\n> error: empty hash requires explicit hash type\r\n\r\nworkaround: `outputHash = \"sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\";`\r\n\r\nupstream issue: https://github.com/NixOS/nix/issues/6596 (surprise, i created that issue)",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2023-09-25T18:27:09Z",
+    "updated_at": "2023-09-25T18:40:20Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/11",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "apt: \"apt-get update\" fails trying to modify /var/lib/apt/lists/partial in /nix/store",
+    "body": "i want to use `apt` to fetch a debian package source:\r\n\r\n```\r\napt-get source 7zip\r\n```\r\n\r\nto make `apt-get` work on nixos\r\ni must create some files in `/etc` and run `apt-get update`\r\n\r\n```\r\n# fix: E: Unable to determine a suitable packaging system type\r\necho unstable | sudo tee /etc/debian_version\r\n\r\n# fix: E: You must put some 'deb-src' URIs in your sources.list\r\nsudo mkdir /etc/apt\r\necho -e \"deb http://deb.debian.org/debian unstable main\\ndeb-src http://deb.debian.org/debian unstable main\" | sudo tee /etc/apt/sources.list\r\nsudo apt-get update\r\n```\r\n\r\n`apt-get update` fails with\r\n\r\n```console\r\n$ sudo apt-get update\r\nReading package lists... Done\r\nW: chmod 0700 of directory /nix/store/ryviwc5dpc46yzprjnqxqdyj4jjqmwaz-apt-2.7.1/var/lib/apt/lists/partial failed - SetupAPTPartialDirectory (30: Read-only file system)\r\nW: Not using locking for read only lock file /nix/store/ryviwc5dpc46yzprjnqxqdyj4jjqmwaz-apt-2.7.1/var/lib/apt/lists/lock\r\nW: No sandbox user '_apt' on the system, can not drop privileges\r\n```\r\n\r\nexpected:\r\n`apt-get update` should modify `/var/lib/apt/lists/partial`\r\nin the filesystem root, not in the nix store\r\n\r\nsimilar `apt-get` commands fail too\r\n\r\n```console\r\n$ sudo apt-get clean \r\nW: chmod 0700 of directory /nix/store/ryviwc5dpc46yzprjnqxqdyj4jjqmwaz-apt-2.7.1/var/cache/apt/archives/partial failed - SetupAPTPartialDirectory (30: Read-only file system)\r\nW: Not using locking for read only lock file /nix/store/ryviwc5dpc46yzprjnqxqdyj4jjqmwaz-apt-2.7.1/var/cache/apt/archives/lock\r\nW: chmod 0700 of directory /nix/store/ryviwc5dpc46yzprjnqxqdyj4jjqmwaz-apt-2.7.1/var/lib/apt/lists/partial failed - SetupAPTPartialDirectory (30: Read-only file system)\r\nW: Not using locking for read only lock file /nix/store/ryviwc5dpc46yzprjnqxqdyj4jjqmwaz-apt-2.7.1/var/lib/apt/lists/lock\r\n```\r\n\r\n```console\r\n$ sudo apt-get upgrade\r\nE: Could not open lock file /nix/store/ryviwc5dpc46yzprjnqxqdyj4jjqmwaz-apt-2.7.1/var/lib/dpkg/lock-frontend - open (2: No such file or directory)\r\nE: Unable to acquire the dpkg frontend lock (/nix/store/ryviwc5dpc46yzprjnqxqdyj4jjqmwaz-apt-2.7.1/var/lib/dpkg/lock-frontend), are you root?\r\n```\r\n\r\nsimilar issue: [what is the purpose of the files in this directory: /var/lib/apt/lists?](https://serverfault.com/questions/449726/what-is-the-purpose-of-the-files-in-this-directory-var-lib-apt-lists)\r\n\r\n<blockquote>\r\n\r\nFrom `man apt-get`\r\n\r\n```\r\n/var/lib/apt/lists/\r\nStorage area for state information for each package resource\r\nspecified in sources.list(5) Configuration Item: Dir::State::Lists.\r\n\r\n/var/lib/apt/lists/partial/\r\nStorage area for state information in transit. Configuration Item:\r\nDir::State::Lists (partial will be implicitly appended)\r\n```\r\n\r\n</blockquote>\r\n\r\nso this should be fixed by\r\n\r\n```\r\necho 'Dir::State \"/var/lib/apt\";' | sudo tee /etc/apt/apt.conf\r\n```\r\n\r\nor\r\n\r\n```\r\necho 'Dir::State::Lists \"/var/lib/apt/lists\";' | sudo tee /etc/apt/apt.conf\r\n```\r\n\r\nbut `apt-get` ignores `/etc/apt/apt.conf`\r\nwhich is fixed by `apt-get -c /etc/apt/apt.conf update`\r\n\r\n\r\n```console\r\n$ apt-get -c /etc/apt/apt.conf source 7zip\r\nReading package lists... Done\r\nE: You must put some 'deb-src' URIs in your sources.list\r\n```\r\n\r\nnow `apt-get` ignores `/etc/apt/sources.list`\r\nthis should be fixed by\r\n\r\n```\r\necho -e 'Dir::State \"/var/lib/apt\";\\nDir::Etc \"/etc/apt\";\\nDir::Cache \"/var/cache/apt\";' | sudo tee /etc/apt/apt.conf\r\n```\r\n\r\nor\r\n\r\n```\r\necho 'Dir { State \"/var/lib/apt\"; Etc \"/etc/apt\"; Cache \"/var/cache/apt\"; };' | sudo tee /etc/apt/apt.conf\r\n```\r\n\r\nbut no,  `apt-get` still ignores `/etc/apt/sources.list`\r\n\r\n```console\r\n$ apt-get -c /etc/apt/apt.conf source 7zip\r\nReading package lists... Done\r\nE: You must put some 'deb-src' URIs in your sources.list\r\n```\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2023-09-29T08:56:26Z",
+    "updated_at": "2023-09-29T09:23:41Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/12",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "retdec: rename bin/retdec-decompiler.py to bin/retdec-decompiler",
+    "body": "https://github.com/avast/retdec\r\n\r\n<blockquote>\r\n\r\nTo decompile a binary file named test.exe, run\r\n\r\n```\r\n$RETDEC_INSTALL_DIR/bin/retdec-decompiler test.exe\r\n```\r\n\r\n</blockquote>\r\n\r\nmaintainers: @dtzWill @timokau\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2023-09-30T12:53:36Z",
+    "updated_at": "2023-09-30T12:53:36Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/13",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "NIX_PATH is not updated after nixos-rebuild switch",
+    "body": "either this is deliberate to keep the system stable\r\nor this is not implemented because it affects the legacy nix tools nix-shell and nix-build\r\n\r\n### environment\r\n\r\nnixpkgs 01441e14af5e29c9d27ace398e6dd0b293e25a54\r\n\r\n### reproduce\r\n\r\n```\r\n$ echo $NIX_PATH | tr : $'\\n' | grep ^nixpkgs=\r\nnixpkgs=/nix/store/qb3dg4cx5jzk3pa8szzi0ziwnqy33p50-source\r\n\r\n$ ( cd /etc/nixos && sudo nix flake lock --update-input nixpkgs )\r\n\r\n$ sudo nixos-rebuild switch\r\n\r\n$ echo $NIX_PATH | tr : $'\\n' | grep ^nixpkgs=\r\nnixpkgs=/nix/store/qb3dg4cx5jzk3pa8szzi0ziwnqy33p50-source\r\n\r\n$ source /etc/set-environment\r\n\r\n$ echo $NIX_PATH | tr : $'\\n' | grep ^nixpkgs=\r\nnixpkgs=/nix/store/0axp4y6hffffs95l5865szvpcmq9g08p-source\r\n```\r\n\r\n### problem\r\n\r\n/etc/profile\r\n\r\n```sh\r\n  if [ -z \"$__NIXOS_SET_ENVIRONMENT_DONE\" ]; then\r\n      . /nix/store/4rd12751lhvvinlkcc0ij3rs2h6g2r4l-set-environment\r\n  fi\r\n```\r\n\r\n### workaround\r\n\r\n~/.bashrc\r\n\r\n```sh\r\n# force update of NIX_PATH\r\n# FIXME this should be done somewhere else...\r\n# usually in /etc/profile but that has\r\n#   if [ -z \"$__NIXOS_SET_ENVIRONMENT_DONE\" ]; then\r\n#       . /nix/store/4rd12751lhvvinlkcc0ij3rs2h6g2r4l-set-environment\r\n#   fi\r\nsource /etc/set-environment\r\n```\r\n\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2023-10-22T06:39:26Z",
+    "updated_at": "2023-10-22T06:39:26Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/14",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "mention substituteAll in the trivial builders docs",
+    "body": "## substituteAll\r\n\r\nhttps://discourse.nixos.org/t/how-pkgs-substituteall-chmod-x-buildenv/8167/2\r\n\r\n<blockquote>\r\n\r\nTurns out `pkgs.substituteAll` has some extra functionality so `pkgs.writeScript*` isn’t needed even. So after some tinkering, this works:\r\n\r\n```nix\r\nlet\r\n\r\n  pkgs = import <nixpkgs> {};\r\n  inherit (pkgs) lib;\r\n\r\n  options = {\r\n    foo = \"foo\";\r\n    bar = \"bar\";\r\n  };\r\n\r\n  scripts = lib.mapAttrs (name: type: pkgs.substituteAll ({\r\n    src = ./scripts + \"/${name}\";\r\n    dir = \"bin\";\r\n    isExecutable = true;\r\n  } // options)) (builtins.readDir ./scripts);\r\n\r\n\r\n  joined = pkgs.symlinkJoin {\r\n    name = \"scripts\";\r\n    paths = lib.attrValues scripts;\r\n  };\r\n\r\nin joined\r\n```\r\n\r\n</blockquote>\r\n\r\n### simple example\r\n\r\ncowsay-hello.nix\r\n\r\n```nix\r\n{ lib\r\n, substituteAll\r\n, runtimeShell\r\n, cowsay\r\n}:\r\n\r\nsubstituteAll {\r\n  name = \"cowsay-hello\";\r\n  src = ./cowsay-hello.sh;\r\n  dir = \"bin\";\r\n  isExecutable = true;\r\n  inherit runtimeShell;\r\n  path = lib.makeBinPath [ cowsay ];\r\n  postInstall = ''\r\n    # ...\r\n  '';\r\n}\r\n```\r\n\r\ncowsay-hello.sh\r\n\r\n```sh\r\n#! @runtimeShell@\r\n\r\nif [ -x \"@runtimeShell@\" ]; then export SHELL=\"@runtimeShell@\"; fi;\r\n\r\nexport PATH=@path@:$PATH\r\n\r\nexec cowsay hello\r\n```\r\n\r\nsee also\r\n[nixpkgs/pkgs/os-specific/linux/nixos-rebuild/default.nix](https://github.com/NixOS/nixpkgs/blob/master/pkgs/os-specific/linux/nixos-rebuild/default.nix)\r\n[nixpkgs/pkgs/os-specific/linux/nixos-rebuild/nixos-rebuild.sh](https://github.com/NixOS/nixpkgs/blob/master/pkgs/os-specific/linux/nixos-rebuild/nixos-rebuild.sh)\r\n... and many other examples in nixpkgs\r\n\r\n## trivial builders docs\r\n\r\nhttps://ryantm.github.io/nixpkgs/builders/trivial-builders/\r\n\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2023-11-24T15:25:48Z",
+    "updated_at": "2023-11-24T15:32:50Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/15",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "substituteInPlace: consumeEntire(): ERROR: Input null bytes, won't process",
+    "body": "substituteInPlace is useless for binary-patching\r\n\r\n```sh\r\n    substituteInPlace some_binary \\\r\n      --replace \\\r\n        'some text   ' \\\r\n        'another text'\r\n```\r\n\r\nthis fails with error\r\n\r\n```\r\nconsumeEntire(): ERROR: Input null bytes, won't process\r\n```\r\n\r\nworkaround: use good old `sed`\r\n\r\n```sh\r\nsed -i 's/some text   /another text/' some_binary\r\n```\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2023-11-29T19:53:06Z",
+    "updated_at": "2023-11-29T19:56:14Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/16",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "alass: rename binary from alass-cli to alass",
+    "body": "the command should be `alass` not `alass-cli`\r\n\r\nhttps://github.com/kaegi/alass?tab=readme-ov-file#usage\r\n\r\n<blockquote>\r\n\r\nThe most basic command is:\r\n\r\n```\r\n$ alass movie.mp4 incorrect_subtitle.srt output.srt\r\n```\r\n\r\n</blockquote>\r\n\r\nmaintainer @erictapen ",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2023-12-07T17:21:27Z",
+    "updated_at": "2023-12-07T20:54:20Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/17",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "frida: build from source",
+    "body": "currently nixpkgs has a binary build of frida\r\nhttps://github.com/NixOS/nixpkgs/pull/231229\r\n\r\nprobably based on `nur.repos.dschrempf.frida-tools`\r\nhttps://github.com/dschrempf/nur-packages/blob/master/pkgs/hacking/frida-tools/default.nix\r\nhttps://github.com/dschrempf/nur-packages/blob/master/pkgs/hacking/frida-python/default.nix\r\n\r\nwhich is based on `nur.repos.genesis.frida-tools`\r\nhttps://github.com/bignaux/nur-packages/blob/master/pkgs/frida-tools/default.nix\r\nhttps://github.com/bignaux/nur-packages/blob/master/pkgs/frida-compile/default.nix\r\nhttps://github.com/bignaux/nur-packages/blob/master/pkgs/frida-agent-example/default.nix\r\n\r\n## build frida from source\r\n\r\nbuilding frida from source is complex\r\nbecause frida uses many patched dependencies\r\nand the whole build process is controlled by makefiles\r\n\r\nmy draft has about 200 commits, maybe can be squashed to 20 commits\r\nhttps://github.com/milahu/nixpkgs/tree/frida-init\r\n\r\ni got the build working, but the python module failed to load\r\nbecause it failed to load the `_frida.so` library...\r\ni spent many hours on that problem alone, but i found no fix\r\n\r\nyou better have a fast build server, or this will take \"forever\"\r\nthe most compile-time is needed for frida-v8\r\npkgs/development/tools/analysis/frida/v8/default.nix\r\n\r\nalso, i wanted to write an updater, which parses the pinned versions from makefiles\r\nbut i got stuck, looking for a makefile parser\r\nsee also\r\npkgs/development/tools/analysis/frida/update.sh\r\n\r\ncc @lf- via https://github.com/NixOS/nixpkgs/pull/254047\r\n(i just found that by accident, i dont receive mentions since im banned from nixos)\r\n\r\n## related\r\n\r\n- https://github.com/NixOS/nixpkgs/issues?q=in%3Atitle+frida\r\n- https://github.com/NixOS/nixpkgs/issues/194018\r\n- https://nixos.wiki/wiki/Frida\r\n- https://github.com/search?q=org%3Afrida+author%3Amilahu+is%3Aopen&type=issues\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2023-12-09T13:11:07Z",
+    "updated_at": "2023-12-09T22:04:41Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/18",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "apt: fix runtime state paths",
+    "body": "currently, apt uses /nix/store paths as default runtime state paths\r\n\r\n```\r\n$ sudo apt update \r\nReading package lists... Done\r\nBuilding dependency tree... Done\r\nAll packages are up to date.\r\nW: chmod 0700 of directory /nix/store/zrypwimnzv5y7j8bdbsnp6fq2an26b6x-apt-2.7.3/var/lib/apt/lists/partial failed - SetupAPTPartialDirectory (30: Read-only file system)\r\nW: Not using locking for read only lock file /nix/store/zrypwimnzv5y7j8bdbsnp6fq2an26b6x-apt-2.7.3/var/lib/apt/lists/lock\r\nW: No sandbox user '_apt' on the system, can not drop privileges\r\n```\r\n\r\nexpected: apt should use FHS paths as default runtime state paths\r\n\r\nfor example\r\n\r\n```diff\r\n- /nix/store/zrypwimnzv5y7j8bdbsnp6fq2an26b6x-apt-2.7.3/var/lib/apt\r\n+ /var/lib/apt\r\n```\r\n\r\nrunning `apt` on nixos will usually use custom runtime state paths\r\nbut anyway, the default paths should be fixed\r\n\r\n```sh\r\nAPT_CONFIG=$HOME/.config/apt/apt.conf\r\n```\r\n\r\n`$HOME/.config/apt/apt.conf`\r\n\r\n```\r\nDir \"/home/user\";\r\nDir::Etc \".config/apt\";\r\nDir::State \".lib/apt\";\r\nDir::Cache \".cache/apt\";\r\nAPT::Default-Release \"unstable\";\r\nAPT::Sandbox::User \"nobody\";\r\n```\r\n\r\nthe patchPhase could be shorter...\r\nthis whole block is removed from [CMakeLists.txt](https://salsa.debian.org/apt-team/apt/-/blob/c555d8f1ae31d1f511bf811640423231b75a8e13/CMakeLists.txt#L265)\r\nso this could be done with a regex (perl regex for multiline)\r\n\r\n```cmake\r\n# Create our directories.\r\ninstall_empty_directories(\r\n  ${CONF_DIR}/apt.conf.d\r\n  ${CONF_DIR}/auth.conf.d\r\n  ${CONF_DIR}/preferences.d\r\n  ${CONF_DIR}/sources.list.d\r\n  ${CONF_DIR}/trusted.gpg.d\r\n  ${CACHE_DIR}/archives/partial\r\n  ${STATE_DIR}/lists/partial\r\n  ${STATE_DIR}/mirrors/partial\r\n  ${STATE_DIR}/periodic\r\n  ${LOG_DIR}\r\n)\r\n```\r\n\r\n\r\n\r\nhttps://github.com/milahu/nur-packages/commit/86e6f89b307c4f79b2a3d672affacee9c2b29632\r\n\r\n```diff\r\ncommit 86e6f89b307c4f79b2a3d672affacee9c2b29632\r\nAuthor: Milan Hauth <milahu@gmail.com>\r\nDate:   Fri Dec 22 15:40:45 2023 +0100\r\n\r\n    apt: fix runtime state paths\r\n\r\ndiff --git a/pkgs/tools/package-management/apt/apt.nix b/pkgs/tools/package-management/apt/apt.nix\r\nindex 6991a5a..fd8b53a 100644\r\n--- a/pkgs/tools/package-management/apt/apt.nix\r\n+++ b/pkgs/tools/package-management/apt/apt.nix\r\n@@ -76,6 +76,36 @@ stdenv.mkDerivation rec {\r\n     \"-DWITH_DOC=${if withDocs then \"ON\" else \"OFF\"}\"\r\n   ];\r\n \r\n+  # dont use /nix/store for these paths\r\n+  # dont create these paths: /etc/apt/apt.conf.d ...\r\n+  # TODO substituteInPlace with regex? or perl regex?\r\n+  # TODO allow to pass multiple paths instead of $out/libexec/apt\r\n+  # so we can use more handlers than /libexec/apt/methods/http etc\r\n+  postPatch = ''\r\n+    substituteInPlace CMakeLists.txt \\\r\n+      --replace '\"''${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/lib/apt\"' '\"/var/lib/apt\"' \\\r\n+      --replace '\"''${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/cache/apt\"' '/var/cache/apt' \\\r\n+      --replace '\"''${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/apt\"' '/var/log/apt' \\\r\n+      --replace '\"''${CMAKE_INSTALL_FULL_SYSCONFDIR}/apt\"' '/etc/apt' \\\r\n+      --replace '\"''${CMAKE_INSTALL_FULL_LIBEXECDIR}/apt\"' \"$out/libexec/apt\" \\\r\n+      --replace $'  ''${CONF_DIR}/apt.conf.d\\n' \"\" \\\r\n+      --replace $'  ''${CONF_DIR}/auth.conf.d\\n' \"\" \\\r\n+      --replace $'  ''${CONF_DIR}/preferences.d\\n' \"\" \\\r\n+      --replace $'  ''${CONF_DIR}/sources.list.d\\n' \"\" \\\r\n+      --replace $'  ''${CONF_DIR}/trusted.gpg.d\\n' \"\" \\\r\n+      --replace $'  ''${CACHE_DIR}/archives/partial\\n' \"\" \\\r\n+      --replace $'  ''${STATE_DIR}/lists/partial\\n' \"\" \\\r\n+      --replace $'  ''${STATE_DIR}/mirrors/partial\\n' \"\" \\\r\n+      --replace $'  ''${STATE_DIR}/periodic\\n' \"\" \\\r\n+      --replace $'  ''${LOG_DIR}\\n' \"\" \\\r\n+      --replace $'\\n# Create our directories.\\ninstall_empty_directories(\\n)\\n' \"\"\r\n+\r\n+    substituteInPlace apt-pkg/init.cc \\\r\n+      --replace \\\r\n+        'Cnf.CndSet(\"APT::Sandbox::User\", \"_apt\");' \\\r\n+        'Cnf.CndSet(\"APT::Sandbox::User\", \"nobody\");'\r\n+  '';\r\n+\r\n   meta = with lib; {\r\n     homepage = \"https://salsa.debian.org/apt-team/apt\";\r\n     description = \"Command-line package management tools used on Debian-based systems\";\r\n```\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2023-12-24T07:25:25Z",
+    "updated_at": "2023-12-24T07:25:25Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/19",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "pythonImportsCheck: run prePythonImportsCheck and postPythonImportsCheck hooks",
+    "body": "`pythonImportsCheck` can do stupid stuff like create temporary files\r\nwhich i want to remove in `postPythonImportsCheck`\r\nbut currently `postPythonImportsCheck` is not called\r\n\r\nproper fix: patch nixpkgs `pkgs/development/interpreters/python/hooks/python-imports-check-hook.sh`\r\n\r\nquickfix: patch the `pythonImportsCheckPhase` function\r\n\r\n`pythonImportsCheck` is the last of all phases, so it runs after `postInstall`\r\n\r\n```nix\r\n{\r\n\r\n  postInstall = ''\r\n    echo patching pythonImportsCheckPhase\r\n    s=\"$(type pythonImportsCheckPhase | tail -n +2)\"\r\n    if ! echo \"$s\" | grep -q \"^    runHook prePythonImportsCheck\"; then\r\n      s=\"$(echo \"$s\" | sed 's/^{/{\\n    runHook prePythonImportsCheck/')\"\r\n    fi\r\n    if ! echo \"$s\" | grep -q \"^    runHook postPythonImportsCheck\"; then\r\n      s=\"$(echo \"$s\" | sed 's/^}/    runHook postPythonImportsCheck\\n}/')\"\r\n    fi\r\n    eval \"$s\"\r\n    echo \"patched pythonImportsCheckPhase:\"; type pythonImportsCheckPhase\r\n  '';\r\n\r\n  postPythonImportsCheck = ''\r\n    echo removing tempfiles from postPythonImportsCheck\r\n    pushd $out >/dev/null\r\n    rm -rf -v local_storage.json output profiles profiles.json tasks\r\n    popd >/dev/null\r\n  '';\r\n```\r\n\r\nthe patched `pythonImportsCheckPhase` function looks like\r\n\r\n```sh\r\npythonImportsCheckPhase () \r\n{ \r\n    runHook prePythonImportsCheck;\r\n    echo \"Executing pythonImportsCheckPhase\";\r\n    if [ -n \"$pythonImportsCheck\" ]; then\r\n        echo \"Check whether the following modules can be imported: $pythonImportsCheck\";\r\n        export PYTHONPATH=\"$out/lib/python3.10/site-packages:$PYTHONPATH\";\r\n        ( cd $out && eval \"/nix/store/pzf6dnxg8gf04xazzjdwarm7s03cbrgz-python3-3.10.12/bin/python3.10 -c 'import os; import importlib; list(map(lambda mod: importlib.import_module(mod), os.environ[\\\"pythonImportsCheck\\\"].split()))'\" );\r\n    fi;\r\n    runHook postPythonImportsCheck\r\n}\r\n```\r\n\r\n\r\nexample use in my [botasaurus.nix](https://github.com/milahu/nur-packages/blob/master/pkgs/python3/pkgs/botasaurus/botasaurus.nix)\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-01-16T15:20:03Z",
+    "updated_at": "2024-01-16T15:20:03Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/20",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "python3Packages.selenium: ModuleNotFoundError: No module named 'selenium.webdriver.common.devtools'",
+    "body": "> `ModuleNotFoundError: No module named 'selenium.webdriver.common.devtools'`\r\n> `FileNotFoundError: [Errno 2] No such file or directory: '/nix/store/j5xnifvfvbsf66qj50v9ns355xfv3hsr-python3-3.11.7-env/lib/python3.11/site-packages/selenium/webdriver/common/devtools'`\r\n\r\nproblem: `python3Packages.selenium` is built from [github source](https://github.com/SeleniumHQ/selenium), not from [pypi source](https://pypi.org/project/selenium/)\r\n\r\n<details>\r\n<summary>\r\nselenium.nix\r\n</summary>\r\n\r\n[nixpkgs/pkgs/development/python-modules/selenium/default.nix](https://github.com/NixOS/nixpkgs/blob/master/pkgs/development/python-modules/selenium/default.nix)\r\n\r\n```nix\r\nbuildPythonPackage rec {\r\n  pname = \"selenium\";\r\n  version = \"4.14.0\";\r\n  format = \"setuptools\";\r\n\r\n  disabled = pythonOlder \"3.7\";\r\n\r\n  src = fetchFromGitHub {\r\n    owner = \"SeleniumHQ\";\r\n    repo = \"selenium\";\r\n    # check if there is a newer tag with or without -python suffix\r\n    rev = \"refs/tags/selenium-${version}\";\r\n    hash = \"sha256-cTMCKfFLUlJDbTUQA3Z/pKCE1RQQRMb4K8hKKn9HqvU=\";\r\n  };\r\n```\r\n\r\n\r\n</details>\r\n\r\nupstream issue: https://github.com/SeleniumHQ/selenium/issues/9010\r\n\r\n> ModuleNotFoundError: No module named 'selenium.webdriver.common.devtools'\r\n\r\n> Fixed in https://github.com/SeleniumHQ/selenium/commit/a42009105200f9afc21d41fc1b825e148d33a402\r\n\r\nupstream uses the `gn` build system to fix the issue, but the pypi \"Source Distribution\" is still broken\r\nthe pypi \"Built Distribution\" works, because it has the `selenium/webdriver/common/devtools/*/*.py` files\r\n\r\n## fix 1\r\n\r\nin `setup.py` use `find_packages`\r\nand add an empty `selenium/webdriver/common/devtools/__init__.py` file\r\n\r\n## fix 2\r\n\r\nin `setup.py` use [find_namespace_packages](https://setuptools.pypa.io/en/latest/userguide/package_discovery.html)\r\nbecause there is no `selenium/webdriver/common/devtools/__init__.py`\r\n\r\n> When you use `find_packages()`, all directories without an `__init__.py` file will be ignored. On the other hand, `find_namespace_packages()` will scan all directories.\r\n\r\ndone in [selenium.nix](https://github.com/milahu/nur-packages/blob/master/pkgs/python3/pkgs/selenium/selenium.nix)\r\n\r\n## fix 3\r\n\r\nuse the pypi \"Built Distribution\"\r\nthis works, because it has the `selenium/webdriver/common/devtools/*/*.py` files\r\n\r\n## fix 4\r\n\r\nfix the `buildPhase` to produce the missing files\r\nsee the upstream issue: https://github.com/SeleniumHQ/selenium/issues/9010\r\n\r\n---\r\n\r\n<details>\r\n<summary>\r\nsetuptools/command/build_py.py:207: _Warning: Package 'selenium.webdriver.common.devtools.v119' is absent from the `packages` configuration.\r\n</summary>\r\n\r\n```\r\n$ nix log /nix/store/23rs2vj83drvqw0fy4631kp11f4v30ma-python3.11-selenium-4.17.2\r\n\r\n!!\r\n  check.warn(importable)\r\n/nix/store/7fnhc3nd125lq9vzw6bghsvbnmcc8mc1-python3.11-setuptools-69.0.2/lib/python3.11/site-packages/setuptools/command/build_py.py:207: _Warning: Package 'selenium.webdriver.common.devtools.v119' is absent from the `packages` configuration.\r\n!!\r\n\r\n        ********************************************************************************\r\n        ############################\r\n        # Package would be ignored #\r\n        ############################\r\n        Python recognizes 'selenium.webdriver.common.devtools.v119' as an importable package[^1],\r\n        but it is absent from setuptools' `packages` configuration.\r\n\r\n        This leads to an ambiguous overall configuration. If you want to distribute this\r\n        package, please make sure that 'selenium.webdriver.common.devtools.v119' is explicitly added\r\n        to the `packages` configuration field.\r\n\r\n        Alternatively, you can also rely on setuptools' discovery methods\r\n        (for example by using `find_namespace_packages(...)`/`find_namespace:`\r\n        instead of `find_packages(...)`/`find:`).\r\n\r\n        You can read more about \"package discovery\" on setuptools documentation page:\r\n\r\n        - https://setuptools.pypa.io/en/latest/userguide/package_discovery.html\r\n\r\n        If you don't want 'selenium.webdriver.common.devtools.v119' to be distributed and are\r\n        already explicitly excluding 'selenium.webdriver.common.devtools.v119' via\r\n        `find_namespace_packages(...)/find_namespace` or `find_packages(...)/find`,\r\n        you can try to use `exclude_package_data`, or `include-package-data=False` in\r\n        combination with a more fine grained `package-data` configuration.\r\n\r\n        You can read more about \"package data files\" on setuptools documentation page:\r\n\r\n        - https://setuptools.pypa.io/en/latest/userguide/datafiles.html\r\n\r\n\r\n        [^1]: For Python, any directory (with suitable naming) can be imported,\r\n              even if it does not contain any `.py` files.\r\n              On the other hand, currently there is no concept of package data\r\n              directory, all directories are treated like packages.\r\n        ********************************************************************************\r\n```\r\n\r\n</details>\r\n\r\n<details>\r\n<summary>\r\nwhat packages are missing\r\n</summary>\r\n\r\n```\r\n$ nix log /nix/store/23rs2vj83drvqw0fy4631kp11f4v30ma-python3.11-selenium-4.17.2 | grep \"Python recognizes\" \r\n        Python recognizes 'selenium.webdriver.common.actions' as an importable package[^1],\r\n        Python recognizes 'selenium.webdriver.common.bidi' as an importable package[^1],\r\n        Python recognizes 'selenium.webdriver.common.devtools.v119' as an importable package[^1],\r\n        Python recognizes 'selenium.webdriver.common.devtools.v120' as an importable package[^1],\r\n        Python recognizes 'selenium.webdriver.common.devtools.v121' as an importable package[^1],\r\n        Python recognizes 'selenium.webdriver.common.devtools.v85' as an importable package[^1],\r\n        Python recognizes 'selenium.webdriver.safari' as an importable package[^1],\r\n        Python recognizes 'selenium.webdriver.webkitgtk' as an importable package[^1],\r\n        Python recognizes 'selenium.webdriver.wpewebkit' as an importable package[^1],\r\n```\r\n\r\n</details>\r\n\r\n<details>\r\n<summary>\r\nsetup.py\r\n</summary>\r\n\r\n```py\r\n    'packages': ['selenium',\r\n                 'selenium.common',\r\n                 'selenium.webdriver',\r\n                 'selenium.webdriver.chromium',\r\n                 'selenium.webdriver.chrome',\r\n                 'selenium.webdriver.common',\r\n                 'selenium.webdriver.support',\r\n                 'selenium.webdriver.firefox',\r\n                 'selenium.webdriver.ie',\r\n                 'selenium.webdriver.edge',\r\n                 'selenium.webdriver.remote',\r\n                 'selenium.webdriver.support', ],\r\n    'include_package_data': True,\r\n```\r\n\r\n</details>\r\n\r\n<details>\r\n<summary>\r\nrepro.py\r\n</summary>\r\n\r\n`repro.py` from https://stackoverflow.com/questions/66227508\r\n\r\n```py\r\n#!/usr/bin/env python3\r\n\r\nimport trio # async library that selenium uses\r\nfrom selenium import webdriver\r\n\r\nasync def start_listening(listener):\r\n    async for event in listener:\r\n        print(event)\r\n\r\nasync def main():\r\n    driver = webdriver.Chrome()\r\n\r\n    async with driver.bidi_connection() as connection:\r\n        session, devtools = connection.session, connection.devtools\r\n\r\n        # await session.execute(devtools.fetch.enable())\r\n        await session.execute(devtools.network.enable())\r\n\r\n        # listener = session.listen(devtools.fetch.RequestPaused)\r\n        listener = session.listen(devtools.network.ResponseReceived)\r\n        async with trio.open_nursery() as nursery:\r\n            nursery.start_soon(start_listening, listener) # start_listening blocks, so we run it in another coroutine\r\n            url = \"https://httpbin.org/get\" # json response\r\n            driver.get(url)\r\n\r\ntrio.run(main)\r\n```\r\n\r\n</details>\r\n\r\n<details>\r\n<summary>\r\nsimply using the pypi source does not work: the selenium-manager binary is missing at /lib/python3.11/site-packages/selenium/webdriver/common/linux/selenium-manager\r\n</summary>\r\n\r\n```nix\r\n{ lib\r\n, fetchPypi\r\n, buildPythonPackage\r\n, setuptools\r\n, wheel\r\n, certifi\r\n, trio\r\n, trio-websocket\r\n, typing-extensions\r\n, urllib3\r\n}:\r\n\r\nbuildPythonPackage rec {\r\n  pname = \"selenium\";\r\n  version = \"4.17.2\";\r\n  pyproject = true;\r\n\r\n  src = fetchPypi {\r\n    inherit pname version;\r\n    hash = \"sha256-1D1pcuUWhV+yQu+c5M51kFexFQcOcC57HBAy/ns42Hs=\";\r\n  };\r\n\r\n  # relax versions\r\n  # fix: typing-extensions~=4.9 not satisfied by version 4.8.0\r\n  # https://github.com/SeleniumHQ/selenium/blob/trunk/py/setup.py\r\n\r\n  # also add selenium.webdriver.common.devtools.* packages\r\n  # fix: ModuleNotFoundError: No module named 'selenium.webdriver.common.devtools'\r\n  # https://github.com/milahu/nixpkgs/issues/20\r\n\r\n  postPatch = ''\r\n    sed -i 's/[~>]=.*\"/\"/' setup.py\r\n    substituteInPlace setup.py \\\r\n      --replace \\\r\n        \"    'packages': [\" \\\r\n        \"    'packages': find_namespace_packages(where='.'), '_packages': [\" \\\r\n      --replace \\\r\n        \"from setuptools import setup\" \\\r\n        \"from setuptools import setup, find_namespace_packages\" \\\r\n  '';\r\n\r\n  nativeBuildInputs = [\r\n    setuptools\r\n    wheel\r\n  ];\r\n\r\n  propagatedBuildInputs = [\r\n    certifi\r\n    trio\r\n    trio-websocket\r\n    typing-extensions\r\n    urllib3\r\n  ];\r\n\r\n  pythonImportsCheck = [ \"selenium\" ];\r\n\r\n  meta = with lib; {\r\n    description = \"Bindings for Selenium WebDriver\";\r\n    homepage = \"https://selenium.dev/\";\r\n    license = licenses.asl20;\r\n    maintainers = with maintainers; [ ];\r\n  };\r\n\r\n}\r\n```\r\n\r\n```\r\n$ ./repro.py\r\nTraceback (most recent call last):\r\n  File \"/nix/store/ph32hh8p5vd8s3i2wk9vfyk06p7j7xv1-python3-3.11.7-env/lib/python3.11/site-packages/selenium/webdriver/common/driver_finder.py\", line 38, in get_path\r\n    path = SeleniumManager().driver_location(options) if path is None else path\r\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"/nix/store/ph32hh8p5vd8s3i2wk9vfyk06p7j7xv1-python3-3.11.7-env/lib/python3.11/site-packages/selenium/webdriver/common/selenium_manager.py\", line 89, in driver_location\r\n    args = [str(self.get_binary()), \"--browser\", browser]\r\n                ^^^^^^^^^^^^^^^^^\r\n  File \"/nix/store/ph32hh8p5vd8s3i2wk9vfyk06p7j7xv1-python3-3.11.7-env/lib/python3.11/site-packages/selenium/webdriver/common/selenium_manager.py\", line 73, in get_binary\r\n    raise WebDriverException(f\"Unable to obtain working Selenium Manager binary; {path}\")\r\nselenium.common.exceptions.WebDriverException: Message: Unable to obtain working Selenium Manager binary; /nix/store/ph32hh8p5vd8s3i2wk9vfyk06p7j7xv1-python3-3.11.7-env/lib/python3.11/site-packages/selenium/webdriver/common/linux/selenium-manager\r\n\r\n\r\nThe above exception was the direct cause of the following exception:\r\n\r\nTraceback (most recent call last):\r\n  File \"/home/user/src/milahu/opensubtitles-scraper/./aiohttp_chromium/test/stream-response/Network.dataReceived.selenium.2.py\", line 38, in <module>\r\n    trio.run(main)\r\n  File \"/nix/store/ph32hh8p5vd8s3i2wk9vfyk06p7j7xv1-python3-3.11.7-env/lib/python3.11/site-packages/trio/_core/_run.py\", line 2251, in run\r\n    raise runner.main_task_outcome.error\r\n  File \"/home/user/src/milahu/opensubtitles-scraper/./aiohttp_chromium/test/stream-response/Network.dataReceived.selenium.2.py\", line 14, in main\r\n    driver = webdriver.Chrome()\r\n             ^^^^^^^^^^^^^^^^^^\r\n  File \"/nix/store/ph32hh8p5vd8s3i2wk9vfyk06p7j7xv1-python3-3.11.7-env/lib/python3.11/site-packages/selenium/webdriver/chrome/webdriver.py\", line 45, in __init__\r\n    super().__init__(\r\n  File \"/nix/store/ph32hh8p5vd8s3i2wk9vfyk06p7j7xv1-python3-3.11.7-env/lib/python3.11/site-packages/selenium/webdriver/chromium/webdriver.py\", line 49, in __init__\r\n    self.service.path = DriverFinder.get_path(self.service, options)\r\n                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"/nix/store/ph32hh8p5vd8s3i2wk9vfyk06p7j7xv1-python3-3.11.7-env/lib/python3.11/site-packages/selenium/webdriver/common/driver_finder.py\", line 41, in get_path\r\n    raise NoSuchDriverException(msg) from err\r\nselenium.common.exceptions.NoSuchDriverException: Message: Unable to obtain driver for chrome using Selenium Manager.; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors/driver_location\r\n```\r\n\r\n</details>\r\n\r\n## similar issues\r\n\r\n- https://github.com/NixOS/nixpkgs/issues/230232\r\n- https://github.com/NixOS/nixpkgs/issues/181035\r\n\r\n## ping\r\n\r\nping maintainer @jraygauthier \r\n\r\nping contributors @arkivm @sdht0 @AleXoundOS @mweinelt @contrun @SuperSandro2000 @lapp0 @polykernel @paulhersch @reflektoin\r\n\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-01-26T07:54:28Z",
+    "updated_at": "2024-01-26T13:20:13Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/21",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "zip: add bzip2 support",
+    "body": "https://github.com/milahu/nur-packages/commit/8a18ca473070380ad40d64df2376e8cce868146b",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-02-02T17:05:57Z",
+    "updated_at": "2024-02-02T17:05:57Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/22",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "not working: NIXPKGS_ALLOW_INSECURE=1 nix why-depends",
+    "body": "\r\n> `$ NIXPKGS_ALLOW_INSECURE=1 nix why-depends nixpkgs#archivebox nixpkgs#python3.pkgs.django`\r\n> `error: Package ‘python3.11-django-3.1.14’ in /nix/store/sl31dgnpwinzvzhh7ak2rx3h6w7kbb30-source/pkgs/development/python-modules/django/3.nix:53 is marked as insecure, refusing to evaluate.`\r\n\r\nfix: `nix why-depends --impure`\r\n\r\n> `NIXPKGS_ALLOW_INSECURE=1 nix why-depends --impure nixpkgs#archivebox nixpkgs#python3.pkgs.django`\r\n\r\nhttps://github.com/NixOS/nix/issues/7576\r\n\r\n\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-02-03T21:15:47Z",
+    "updated_at": "2024-02-03T21:19:43Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/23",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "not helpful: pythonCatchConflictsPhase: Found duplicated packages in closure for dependency 'x'",
+    "body": "the error message is useless for fixing the error\r\n\r\nwhy were these versions added? why exactly?\r\nexpected: show a dependency tree like `nix why-depends`\r\n\r\nexample of actual output\r\n\r\n```\r\nRunning phase: pythonCatchConflictsPhase\r\nFound duplicated packages in closure for dependency 'django': \r\n        django 4.2.9 (/nix/store/6yps33fnfy9ysnrdlhvbyq6pa44k1xxq-python3.11-Django-4.2.9/lib/python3.11/site-packages/Django-4.2.9.dist-info)\r\n        django 4.2.9 (/nix/store/dg6pj3ccvyji7b46f626b1qdj6c2psxc-python3.11-Django-4.2.9/lib/python3.11/site-packages/Django-4.2.9.dist-info)\r\n\r\nPackage duplicates found in closure, see above. Usually this happens if two packages depend on different version of the same dependency.\r\n```\r\n\r\nhttps://discourse.nixos.org/t/duplicate-when-installing-extrapackage-from-overlay/7736\r\n\r\nhttps://github.com/DavHau/mach-nix/issues/208\r\n\r\nhttps://www.reddit.com/r/NixOS/comments/n6g3j4/buildpythonpackage_dependency_problems_how_to/\r\n\r\n> You can use an overlay to do this\r\n\r\n```nix\r\n# overlay.nix\r\nself: super: {\r\n  python38 = super.python38.override {\r\n    packageOverrides = python-self: python-super: with self.python38.pkgs; {\r\n      requests = callPackage ./requests.nix {};\r\n    };\r\n  };\r\n}\r\n```\r\n\r\narchivebox/default.nix has this\r\n\r\n```nix\r\n{\r\n  python = python3.override {\r\n    packageOverrides = self: super: {\r\n      django = super.django_3.overridePythonAttrs (old: rec {\r\n        version = \"3.1.14\";\r\n        src = old.src.override {\r\n          inherit version;\r\n          hash = \"sha256-cqSloTaiFMOc8BbM3Wtp4qoIx0ecZtk/OpteS7nYo0c=\";\r\n        };\r\n        meta = old.meta // {\r\n          knownVulnerabilities = [\r\n            \"CVE-2021-45115\"\r\n            \"CVE-2021-45116\"\r\n            \"CVE-2021-45452\"\r\n            \"CVE-2022-23833\"\r\n            \"CVE-2022-22818\"\r\n            \"CVE-2022-28347\"\r\n            \"CVE-2022-28346\"\r\n          ];\r\n        };\r\n      });\r\n      django-extensions = super.django-extensions.overridePythonAttrs (old: rec {\r\n        version = \"3.1.5\";\r\n        src = fetchFromGitHub {\r\n          inherit version;\r\n          owner = \"django-extensions\";\r\n          repo = \"django-extensions\";\r\n          rev = \"e43f383dae3a35237e42f6acfe1207a8e7e7bdf5\";\r\n          hash = \"sha256-NAMa78KhAuoJfp0Cb0Codz84sRfRQ1JhSLNYRI4GBPM=\";\r\n        };\r\n        # possibly a real issue, but that version is not supported anymore\r\n        disabledTests = [ \"test_should_highlight_bash_syntax_without_name\" ];\r\n      });\r\n    };\r\n  };\r\n\r\n```",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-02-03T21:34:53Z",
+    "updated_at": "2024-02-03T21:51:50Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/24",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "nix-init fails to parse license from COPYING file",
+    "body": "[nix-init](https://github.com/nix-community/nix-init) version 0.3.0\r\n\r\nno issues: https://github.com/nix-community/nix-init/issues?q=COPYING+license\r\n\r\nexample: https://github.com/frida/cryptoshark/blob/master/COPYING\r\n\r\nnix-init output\r\n\r\n```nix\r\n{\r\n  meta = with lib; {\r\n    # ...\r\n    license = licenses.unfree; # FIXME: nix-init did not found a license\r\n```\r\n\r\nping @figsoda @pschmitt @Ninja3047\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+      {
+        "user": "https://github.com/pschmitt",
+        "content": "-1",
+        "subject_type": "Issue",
+        "created_at": "2024-02-04T11:33:47.324+01:00"
+      }
+    ],
+    "closed_at": null,
+    "created_at": "2024-02-04T10:30:19Z",
+    "updated_at": "2024-02-04T10:31:38Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/25",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "nix-init should ignore empty .gitmodules files",
+    "body": "git leaves an empty `.gitmodules` file after all git submodules were removed\r\n\r\nin that case, [nix-init](https://github.com/nix-community/nix-init) should not offer\r\n\r\n> `Fetch submodules? (Y/n)`\r\n\r\nexample\r\nhttps://github.com/fkie-cad/friTap/blob/b0ab947e9d747cf011d12ddb3c985c3172207da1/.gitmodules\r\n\r\nping\r\n@figsoda\r\n@pschmitt\r\n@Ninja3047\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-02-05T12:11:13Z",
+    "updated_at": "2024-02-05T14:02:21Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/26",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "python3.pkgs.frida-python: rename to python3.pkgs.frida",
+    "body": "generally, the python import name should match the nixpkgs package name\r\n\r\nthe python import is\r\n\r\n```py\r\nimport frida\r\n```\r\n\r\n... not\r\n\r\n```py\r\nimport frida_python\r\n```\r\n\r\nthe other frida package is frida_tools\r\n\r\n\r\n```py\r\nimport frida_tools\r\n```\r\n\r\nwhich is in the global namespace of nixpkgs: `frida-tools`\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-02-05T16:47:17Z",
+    "updated_at": "2024-02-05T16:47:17Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/27",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "substituteStream: dont replace if pattern and replacement are equal",
+    "body": "currently, `substituteStream` runs the replace\r\nif pattern and replacement are equal\r\n\r\nso currently, this is \\*not\\* a noop\r\n\r\n```sh\r\nsubstituteInPlace somefile.txt --replace asdf asdf\r\n```\r\n\r\n\r\nactual\r\n\r\n```sh\r\nsubstituteStream() {\r\n    local var=$1;\r\n    local description=$2;\r\n    shift 2;\r\n    while (( \"$#\" )); do\r\n        case \"$1\" in \r\n            --replace)\r\n                pattern=\"$2\";\r\n                replacement=\"$3\";\r\n                shift 3;\r\n                local savedvar;\r\n                savedvar=\"${!var}\";\r\n                eval \"$var\"'=${'\"$var\"'//\"$pattern\"/\"$replacement\"}';\r\n                if [ \"$pattern\" != \"$replacement\" ]; then\r\n                    if [ \"${!var}\" == \"$savedvar\" ]; then\r\n                        echo \"substituteStream(): WARNING: pattern '$pattern' doesn't match anything in $description\" 1>&2;\r\n                    fi;\r\n                fi\r\n            ;;\r\n```\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-02-08T12:39:53Z",
+    "updated_at": "2024-02-08T12:39:53Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/28",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "lldb in python: error: unable to locate lldb-server",
+    "body": "\r\n```\r\nsupport exe dir -> `/nix/store/asiphbpiy2gmidfm3xbwcikayhs66289-python3-3.11.7/bin/`\r\nerror: unable to locate lldb-server\r\n```\r\n\r\nobviously, lldb-server is not in the python /bin\r\n\r\n```\r\n$ ls /nix/store/asiphbpiy2gmidfm3xbwcikayhs66289-python3-3.11.7/bin/\r\n2to3  2to3-3.11  idle  idle3  idle3.11  pydoc  pydoc3  pydoc3.11  python  python3  python3.11  python3.11-config  python3-config  python-config\r\n```\r\n\r\nbut lldb-server is in $PATH so lldb should use that\r\n\r\n```\r\n$ which lldb-server\r\n/nix/store/vpqd2k73ya6fxkwmy6bznc0xbiah2nq6-lldb-16.0.6/bin/lldb-server\r\n```\r\n\r\nworkaround in python\r\n\r\n```py\r\n# fix: error: unable to locate lldb-server\r\n# lldb is looking in the wrong $PATH = support exe dir\r\n# https://github.com/NixOS/nixpkgs/pull/119945\r\n# -> set LLDB_DEBUGSERVER_PATH to absolute path of lldb-server\r\n# get absolute path of lldb-server\r\n# TODO shorter?\r\nlldb_server_exe = next(filter(lambda p: os.path.exists(p), map(lambda p: p + \"/lldb-server\", os.get_exec_path())))\r\nos.environ[\"LLDB_DEBUGSERVER_PATH\"] = lldb_server_exe\r\n```\r\n\r\nsee also\r\nhttps://github.com/NixOS/nixpkgs/pull/119945\r\nhttps://bugs.launchpad.net/ubuntu/+source/llvm-toolchain-10/+bug/1894159\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-02-14T11:24:29Z",
+    "updated_at": "2024-02-14T11:24:29Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/29",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "add a split page version of the nixos manual",
+    "body": "for the nixpkgs manual there is https://ryantm.github.io/nixpkgs/\r\n\r\ni want to link to a section like\r\nhttps://nixos.org/manual/nixos/stable/#module-postgresql\r\nwithout forcing the user to load the whole nixos manual\r\n\r\nping @ryantm \r\n\r\nthere is https://nlewo.github.io/nixos-manual-sphinx/ but thats not perfect\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-02-21T19:52:25Z",
+    "updated_at": "2024-02-23T11:54:03Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/30",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "error: postgresql_11 was removed, please upgrade your postgresql version.",
+    "body": "caused by\r\n\r\n```nix\r\n{\r\n  services.gitea.enable = true;\r\n```\r\n\r\n\r\nwould be nice if the error message would be more helpful\r\n\r\n### how do i migrate the database data?\r\n\r\nrun `pg_upgrade` as described in the [nixos manual](https://nixos.org/manual/nixos/stable/#module-services-postgres-upgrading)\r\n\r\nif you have no database data, you can skip this step\r\n\r\n### how do i update the postgresql version?\r\n\r\nadd\r\n\r\n```nix\r\n{\r\n  services.postgresql.package = pkgs.postgresql_16;\r\n```\r\n\r\n### related\r\n\r\n[Document postgresql upgrade](https://github.com/NixOS/nixpkgs/pull/82739)\r\n\r\n[How to upgrade postgresql in NixOS?](https://stackoverflow.com/questions/51688193/how-to-upgrade-postgresql-in-nixos)\r\n\r\n[For semi-automated PostgreSQL upgrade: Can the wrapped PostgreSQL be accessed from nix expressions?](https://discourse.nixos.org/t/for-semi-automated-postgresql-upgrade-can-the-wrapped-postgresql-be-accessed-from-nix-expressions/6847)\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-02-22T08:35:55Z",
+    "updated_at": "2024-02-22T08:35:55Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/31",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "Warning: Tor is currently configured as a relay and a hidden service",
+    "body": "problem: by default, tor relay and tor hidden services run in the same tor process\r\n\r\ntor logs will show the warning\r\n\r\n> `$ journalctl -xeu tor.service | grep -m1 \"run your hidden service in a separate Tor process\" | cut -c58-`\r\n> <code>[warn] Tor is currently configured as a relay and a hidden service. That's not very secure: you should probably run your hidden service in a separate Tor process, at least -- see https://bugs.torproject.org/tpo/core/tor/8742.</code>\r\n\r\n/etc/nixos/configuration.nix\r\n\r\n```nix\r\n{\r\n  services.tor = {\r\n    enable = true;\r\n    client = {\r\n      # fast (but risky) socks proxy on port 9063 for https: new circuit every 10 minutes\r\n      enable = true;\r\n    };\r\n    # disable by-country statistics\r\n    enableGeoIP = false;\r\n    openFirewall = true;\r\n    # FIXME\r\n    # [warn] Tor is currently configured as a relay and a hidden service.\r\n    # That's not very secure: you should probably run your hidden service in a separate Tor process, at least\r\n    # https://bugs.torproject.org/tpo/core/tor/8742\r\n    relay = {\r\n      enable = true;\r\n      role = \"relay\";\r\n      #role = \"bridge\"; # exit node?\r\n    };\r\n    settings = {\r\n      ContactInfo = \"someone@somewhere.com\";\r\n      Nickname = \"someone\";\r\n      ORPort = 9001;\r\n      BandWidthRate = \"1 MBytes\";\r\n    };\r\n  };\r\n\r\n  services.tor.relay.onionServices = {\r\n    # keys are stored in /var/lib/tor/onion/some_hidden_service\r\n    \"some_hidden_service\" = {\r\n      map = [{ port = 80; target = { port = 1234; }; }];\r\n    };\r\n  };\r\n```\r\n\r\nideally `nixos-rebuild switch` should show a warning\r\nwhen both tor relay and tor hidden services are enabled\r\nbecause this is a security risk\r\n\r\nideally this would be fixed\r\nby adding `useSeparateTorProcess = true;` to the hidden service config\r\n\r\n```nix\r\n{\r\n  services.tor.relay.onionServices = {\r\n    \"some_hidden_service\" = {\r\n      map = [{ port = 80; target = { port = 1234; }; }];\r\n      # FIXME implement this\r\n      useSeparateTorProcess = true;\r\n    };\r\n  };\r\n```\r\n\r\n### nixos config run multiple instances of one service on different ports\r\n\r\n[Running a second instance of a service: a solution](https://www.reddit.com/r/NixOS/comments/13ikbpc/running_a_second_instance_of_a_service_a_solution/)\r\n\r\n[Run enable multiple instaces of the same systemd service](https://discourse.nixos.org/t/run-enable-multiple-instaces-of-the-same-systemd-service/26156)\r\n\r\n```nix\r\n{\r\n  systemd.services.\"foo@\" = {\r\n    description = \"foo, instance %i\";\r\n    serviceConfig = {\r\n      Type = \"oneshot\";\r\n      ExecStart = \"/my/batch/file %i\";\r\n    };\r\n  };\r\n}\r\n```\r\n\r\n### related\r\n\r\n[Byte history leaks information about local usage/hidden services tor#8742](https://gitlab.torproject.org/tpo/core/tor/-/issues/8742)\r\n\r\n> An attacker could use this data to determine if a relay hosts a hidden service (generally more bytes written than read), or if a user was actively browsing/downloading (more bytes read, generally) during a certain period of time. An active attacker could then create a large amount of traffic to a hidden service, perhaps creating a known pattern of high traffic followed by a period of little traffic, then review the byte history again and look for any relays that displayed a difference of read/write similar to the generated traffic.\r\n\r\n[nixos/tor: add tor hidden service options nixpkgs#28081](https://github.com/NixOS/nixpkgs/pull/28081)\r\n\r\n&rarr; ping @tnias @fpletz @Mic92 @oxij\r\n\r\n[What are the implications of a Relay hosting a Hidden Service?](https://tor.stackexchange.com/questions/3/what-are-the-implications-of-a-relay-hosting-a-hidden-service)\r\n\r\n[How to open Tor on port 9050?](https://discourse.nixos.org/t/how-to-open-tor-on-port-9050/9330)\r\n\r\n> `services.tor.client.enable`: Explicitly disable the SOCKS server if the client is disabled.  In particular, this makes non-anonymous hidden services possible.\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-02-22T09:47:44Z",
+    "updated_at": "2024-04-21T08:42:41Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/32",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "nixos firewall: deprecate iptables in favor of nftables",
+    "body": "`nixos/modules/virtualisation/nixos-containers.nix` is using `networking.nftables`\r\ni dont see how exactly but when i disable `nftables` in `tor.nix` with\r\n`networking.nftables.enable = false;` then i get the error\r\n\r\n```\r\nerror: The option `containers.asdf.networking.nftables.enable' has conflicting definition values:\r\n- In `nixos/modules/services/security/tor.nix': false\r\n- In `nixos/modules/virtualisation/nixos-containers.nix': true\r\n```\r\n\r\n> when i disable `nftables` in `tor.nix`\r\n\r\nprobably i should not do that\r\nand set firewall rules either via `iptables`, or via `nftables`\r\nassuming that both ways \"just work\"\r\n\r\ncurrently, nixos services use the `iptables` command to add and remove firewall rules\r\nno nixos services seems to use the `nft` command\r\n\r\n### related\r\n\r\n[Firewall improvements/suggestions/discussion nixpkgs#21974](https://github.com/NixOS/nixpkgs/issues/21974)\r\n\r\n[iptables: switch from iptables-legacy to iptables-nftables-compat nixpkgs#81172](https://github.com/NixOS/nixpkgs/pull/81172)?\r\n\r\n[nftables module: absorb into firewall module, rename ruleset options nixpkgs#161428](https://github.com/NixOS/nixpkgs/issues/161428)\r\n\r\n\r\n[nixos/{firewall,nat}: Standardize around an iptables-restore / nftables solution nixpkgs#4155](https://github.com/NixOS/nixpkgs/issues/4155)\r\n\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-02-23T08:03:43Z",
+    "updated_at": "2024-02-23T08:03:43Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/33",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "curl: Not resolving .onion address (RFC 7686)",
+    "body": "say i have a nixos container with a transparent tor proxy\r\nso in that container, all traffic is going through tor\r\nsee also #31\r\n\r\nnow i want to use curl... but curl wants to be smarter than me\r\nso curl will not resolve onion domains\r\n\r\n```\r\n$ curl -s https://check.torproject.org/api/ip\r\n{\"IsTor\":true,\"IP\":\"109.70.100.3\"}\r\n\r\n$ curl -s -v http://2gzyxa5ihm7nsggfxnu52rck2vv4rvmdlkiu3zzui5du4xyclen53wid.onion/\r\n*   Trying 127.0.0.1:9050...\r\n* Connected to 127.0.0.1 (127.0.0.1) port 9050\r\n* Not resolving .onion address (RFC 7686)\r\n* Closing connection\r\n```\r\n\r\nFUUUUUUUUUUUUUUUUUUUUUUUU\r\n\r\nso curl really is forcing me to use\r\n\r\ncurl: non-transparent fix\r\n\r\n```\r\n$ curl --proxy socks5h://127.0.0.1:9050 -s http://2gzyxa5ihm7nsggfxnu52rck2vv4rvmdlkiu3zzui5du4xyclen53wid.onion/ | head -n1\r\n<!doctype html>\r\n```\r\n\r\nor with a random user:password for tor circuit isolation\r\n\r\n```\r\n$ curl --proxy socks5h://$RANDOM:$RANDOM@127.0.0.1:9050 -s http://2gzyxa5ihm7nsggfxnu52rck2vv4rvmdlkiu3zzui5du4xyclen53wid.onion/ | head -n1\r\n<!doctype html>\r\n```\r\n\r\nsince git is based on curl, git will also refuse to resolve onion domains\r\n\r\n```\r\n$ git clone --depth=1 http://it7otdanqu7ktntxzm427cba6i53w6wlanlh23v5i3siqmos47pzhvyd.onion/milahu/alchi\r\nCloning into 'alchi'...\r\nfatal: unable to access 'http://it7otdanqu7ktntxzm427cba6i53w6wlanlh23v5i3siqmos47pzhvyd.onion/milahu/alchi/': Not resolving .onion address (RFC 7686)\r\n```\r\n\r\ngit: non-transparent fix\r\n\r\n```\r\n$ git -c remote.origin.proxy=socks5h://127.0.0.1:9050 clone --depth=1 http://it7otdanqu7ktntxzm427cba6i53w6wlanlh23v5i3siqmos47pzhvyd.onion/milahu/alchi\r\n```\r\n\r\nupstream issues\r\n\r\n- https://github.com/curl/curl/discussions/11125\r\n- [Formalize toggle override for non-Tor applications that follow RFC 7686 torspec#202](https://gitlab.torproject.org/tpo/core/torspec/-/issues/202)\r\n- [resolver should handle special domains correctly glibc#24255](https://sourceware.org/bugzilla/show_bug.cgi?id=24255)\r\n\r\npossible solutions\r\n\r\n- [hostip: add CURL_ALLOW_DOT_ONION to allow .onion lookups curl#11236](https://github.com/curl/curl/pull/11236)\r\n  - [curl-with-allow-dot-onion, git-with-allow-dot-onion: init nur-packages#33b3ef8](https://github.com/milahu/nur-packages/commit/33b3ef8cc8f4d2b177f153464db2ba37a304b08c)\r\n  - on nixos, patching curl is painful, because many other packages depend on curl, and will be rebuilt (\"rebuild the world\")\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-02-23T19:55:37Z",
+    "updated_at": "2024-02-24T06:24:17Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/34",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "stdenv.mkDerivation: overrideAttrs fails to override derived attributes",
+    "body": "\r\n`test.nix`\r\n\r\n```nix\r\nwith import <nixpkgs> {};\r\n(stdenv.mkDerivation rec {\r\n  name = \"\";\r\n  x = \"1\";\r\n  buildCommand = \"echo bash x = $x; echo nix x = ${x}; exit 1\";\r\n}).overrideAttrs (oldAttrs: {\r\n  x = \"2\";\r\n})\r\n```\r\n\r\n```\r\nnix-build test.nix\r\n```\r\n\r\n```\r\nbash x = 2\r\nnix x = 1\r\n```\r\n\r\nin practice, this mostly affects the `version` attribute\r\n\r\n\r\n```nix\r\nwith import <nixpkgs> {};\r\ngitea.overrideAttrs (oldAttrs: rec {\r\n  doCheck = false; # waste of time\r\n  version = \"1.21.6\";\r\n  src = pkgs.fetchurl {\r\n    url = \"https://dl.gitea.com/gitea/${version}/gitea-src-${version}.tar.gz\";\r\n    hash = \"sha256-tixWipiVHugacTzBurdgfiLnKyVDDcqCPlysj2DoWjg=\";\r\n  };\r\n})\r\n```\r\n\r\nthis will build gitea version 1.21.6\r\nbut the gitea webinterface will still show the old version 1.21.4\r\n\r\nbecause `gitea/default.nix` uses the nix variable `version`\r\nwhen it should use the bash variable `version`\r\n\r\n`nixpkgs/pkgs/applications/version-management/gitea/default.nix`\r\n\r\n```nix\r\n{\r\n  ldflags = [\r\n    \"-s\"\r\n    \"-w\"\r\n    \"-X main.Version=${version}\"\r\n    \"-X 'main.Tags=${lib.concatStringsSep \" \" tags}'\"\r\n  ];\r\n```\r\n\r\nthe build flag `main.Version` is used in `gitea/main.go`\r\n\r\n```go\r\n// these flags will be set by the build flags\r\nvar (\r\n  Version     = \"development\" // program version for this build\r\n  Tags        = \"\"            // the Golang build tags\r\n  MakeVersion = \"\"            // \"make\" program version if built with make\r\n)\r\n\r\nfunc init() {\r\n  setting.AppVer = Version\r\n```\r\n\r\n## see also\r\n\r\n### nixos discourse\r\n\r\n[How to override this derivation?](https://discourse.nixos.org/t/how-to-override-this-derivation/8721)\r\n\r\n<blockquote>\r\n\r\nOne possible fix would be changing the interpolation of Nix variable `${src}` to a use of `$src` environment variable. The environment variables are only set by the builder from the attributes passed to `mkDerivation` so your changes would manifest there. The same would have to be done for other variables you would like to tweak like `archive` or `edition`.\r\n\r\nAlternately, since values are passed as function arguments through `callPackage`, it would be nicer to override them using `override` but that might not be possible when there are two nested `callPackage` calls. Not completely sure about this but would expect `override` to only work for the outer one in `all-packages.nix`.\r\n\r\n</blockquote>\r\n\r\n> Hm, that’s what I suspected, that there needs to be an upstream change in nixpkgs to support this.\r\n\r\n[softmaker-office, freeoffice: make it easy to override versions nixpkgs#96163](https://github.com/NixOS/nixpkgs/pull/96163)\r\n\r\n&rarr; pass `version` as function argument through `callPackage`\r\n\r\n### nixpkgs manual\r\n\r\nhttps://ryantm.github.io/nixpkgs/using/overrides/#sec-pkg-overrideAttrs\r\n\r\n<blockquote>\r\n\r\nExample usages:\r\n\r\n```nix\r\nhelloBar = pkgs.hello.overrideAttrs (finalAttrs: previousAttrs: {\r\n  pname = previousAttrs.pname + \"-bar\";\r\n});\r\n```\r\n\r\nIn the above example, \"-bar\" is appended to the pname attribute, while all other attributes will be retained from the original hello package.\r\n\r\n</blockquote>\r\n\r\nnote: \"while all other attributes will be retained from the original hello package.\"\r\n\r\n### nixos reddit\r\n\r\n[Is overrideAttrs supposed to work like this?](https://old.reddit.com/r/NixOS/comments/16syvfd/is_overrideattrs_supposed_to_work_like_this/)\r\n\r\n<blockquote>\r\n\r\nLet's say I have a simple derivation made using mkDerivation\r\n\r\ndrv1.nix\r\n\r\n```nix\r\nmkDerivation { # ... a = 69; installPhase = '' echo \"${a}\" > $out ''; }\r\n```\r\n\r\nand I want to customize it using overrideAttrs\r\n\r\ndrv2.nix\r\n\r\n```\r\n(import ./drv1.nix).overrideAttrs (final: prev: { a = 420; })\r\n```\r\n\r\nwhen I build dev2, the result contains \"69\" but I expected \"420\".\r\n\r\n</blockquote>\r\n\r\n<blockquote>\r\n\r\n`overrideAttrs` modifies the attribute set that gets fed into `mkDerivation`. Now, Nix may be a lazy language, but by the time the `overrideAttrs` function was called, the set is already, well, set in place, meaning you have to change `installPhase` directly. FWIW, you can use the `prev` parameter to retrieve the original `installPhase` value for your override.\r\n\r\nIf possible, I'd recommend adding `a` as a parameter at the top of `drv1.nix` (e.g. `{ stdenv, a ? 4, ... }` to give it a default value), and use the `override` function in `drv2.nix` (as well as importing `drv1.nix` using `callPackage`) instead so the rest is cleanly re-evaluated.\r\n\r\n</blockquote>\r\n\r\n<blockquote>\r\n\r\n3 possible solutions:\r\n\r\n- use overrideAttrs to override derived attributes - in your example `installPhase`\r\n- instead of nix variables, use bash variables - `installPhase = ''echo \"$a\" > $out'';`\r\n- instead of overrideAttrs, use override, and pass the variable as argument to the build function\r\n\r\nbut with bash variables and override:\r\n\r\n> Hm, that’s what I suspected, that there needs to be an upstream change in nixpkgs to support this.\r\n\r\nideally there should be a way to patch the nix source of the original derivation, for example replace `version = \"1\";` with `version = \"2\";` and replace `src.hash = \"111...\";` with `src.hash = \"222...\";`, and then evaluate the patched nix source, so that all derived attributes use the patched values of `version` and `src.hash`... but i guess this would require IFD (import from derivation), which is \"non standard\"\r\n\r\nso realistically, its easier to copy the nix sources from nixpkgs (default.nix and patches), patch the attributes, and use `pkgs.callPackage ./path/to/patched/package { }`. this way, you have a \"minimal diff\", and you avoid overriding derived attributes with overrideAttrs. you can share such patches packages in [nur-packages](https://github.com/nix-community/NUR)\r\n\r\n</blockquote>\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": "2024-04-17T12:52:02Z",
+    "created_at": "2024-02-26T09:46:41Z",
+    "updated_at": "2024-04-17T12:52:02Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/35",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "substituteStream(): WARNING: '--replace' is deprecated, use --replace-{fail,warn,quiet}.",
+    "body": "any fool can make things more complex...\r\n\r\nseriously, what the fuck?\r\nwas this not complex enough?\r\n\r\n```sh\r\nsubstituteInPlace source.txt \\\r\n  --replace \"findme\" \"newsource\"\r\n```\r\n\r\nhow about\r\n\r\n```sh\r\nsubstituteInPlaceYeahReallyImPrettySureIWantThatMmmmkay source.txt \\\r\n  --replace-yeah-really-thanks-for-asking-youre-so-polite-aww \"findme\" \"newsource\"\r\n```\r\n\r\ni guess i will just use `sed` for simple replacements\r\n\r\n```sh\r\nsed -i 's/findme/newsource/g' source.txt\r\n```",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": "2024-03-08T14:18:06Z",
+    "created_at": "2024-02-26T21:50:49Z",
+    "updated_at": "2024-03-08T14:18:06Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/36",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "tinycc: rename to tcc",
+    "body": "the pname is `tcc`\r\nthe binary name is `tcc`\r\nbut the nixpkgs attribute is `tinycc` - why?!\r\n\r\nfix: rename `tinycc` to `tcc`, add alias from `tinycc` to `tcc`\r\n\r\n```\r\n$ nix-shell -p tcc\r\nerror: undefined variable 'tcc'\r\n\r\n$ nix-shell -p tinycc\r\n\r\n$ which tcc\r\n/nix/store/7lsr85kfqsrs95z6mv20msab5dln1cy6-tcc-unstable-2022-07-15/bin/tcc\r\n```\r\n\r\nping \"maintainers\" @joachifm @AndersonTorres\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-02-28T10:17:50Z",
+    "updated_at": "2024-02-28T10:17:50Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/37",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "sqlite: 3.44.2 -> 3.45.1, add branch reuse-schema",
+    "body": "\r\ncommits\r\n\r\n- https://github.com/milahu/nur-packages/commit/a70945cd7c3f89594b8433de06d90de9e835d823 - sqlite: hide warnings from preBuild\r\n- https://github.com/milahu/nur-packages/commit/177dd72a83681b2a12066f31dd44ec7da7748f83 - sqlite: 3.44.2 -> 3.45.1, add branch reuse-schema\r\n\r\nrelated\r\n\r\n- https://github.com/NixOS/nixpkgs/pull/285085\r\n  - typo in title: should be 3.45.1\r\n\r\nping maintainers: @edolstra @np\r\n\r\n---\r\n\r\n\r\nsimplify `sqlite.src` and `mkTool`\r\nmaybe the complexity was intentional?\r\nmaybe a \"source build\" requires more `buildInputs`? `tcl`?\r\n\r\n```\r\n  version = \"3.45.1\";\r\n\r\n  # nixpkgs-update: no auto update\r\n  # NB! Make sure to update ./tools.nix src (in the same directory).\r\n  src = fetchurl {\r\n    url = \"https://sqlite.org/2024/sqlite-autoconf-${archiveVersion version}.tar.gz\";\r\n    hash = \"sha256-zZwnhBt6WTLJiXZR4guGxwHddAVWmJsByllvz6PUmgo=\";\r\n  };\r\n```\r\n\r\nversus\r\n\r\n```\r\n  inherit (versionAttrs) version;\r\n\r\n  src = fetchSqliteTarball {\r\n    inherit (versionAttrs) rev hash;\r\n  };\r\n```\r\n\r\n---\r\n\r\nadd the [reuse-schema](https://sqlite.org/cgi/src/doc/reuse-schema/doc/shared_schema.md) branch\r\nthis looks useful to split a large sqlite database across many files\r\n\r\nfor my case it does not work\r\n\r\n```\r\nsqlite> .shared-schema check \"9600xxx.db\" \"9601xxx.db\"\r\n9600xxx.db is NOT compatible (objects)\r\n9601xxx.db is NOT compatible (objects)\r\n```\r\n\r\nrelated\r\n\r\n- [Table and index in separate files](https:///forum/info/24fe65e1ecc009c6)\r\n- [sqlite append two tables from two databases that have the exact same schema](https://stackoverflow.com/questions/30292367/sqlite-append-two-tables-from-two-databases-that-have-the-exact-same-schema)\r\n- [How to setup index for virtual table in sqlite?](https://stackoverflow.com/questions/19379761/how-to-setup-index-for-virtual-table-in-sqlite)\r\n\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-02-29T11:52:46Z",
+    "updated_at": "2024-02-29T11:52:46Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/38",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "fetchgit should deduplicate gitmodules in the nix store",
+    "body": "currently, when a git repo has git modules (git submodules) (`.gitmodules` file)\r\nthen fetchgit with `{ fetchSubmodules = true; }`\r\nwill fetch the git modules with `git submodule update`\r\n\r\nthe result is a directory with copies of all git modules\r\n\r\nexpected: fetchgit should store the git modules in separate derivations\r\nand symlink git modules to the parent repo\r\nthis adds more complexity\r\nbecause we need a lockfile with all `rev` and `hash` values for all git modules\r\n\r\nnixpkgs/pkgs/build-support/fetchgit/nix-prefetch-git\r\n\r\n```sh\r\n# Update submodules\r\ninit_submodules(){\r\n    # shallow with leaveDotGit will change hashes\r\n    [[ -z \"$deepClone\" ]] && [[ -z \"$leaveDotGit\" ]] && \\\r\n    clean_git submodule update --init --recursive -j ${NIX_BUILD_CORES:-1} --progress --depth 1 || \\\r\n    clean_git submodule update --init --recursive -j ${NIX_BUILD_CORES:-1} --progress\r\n}\r\n\r\nclone(){\r\n    local top=$PWD\r\n    local dir=\"$1\"\r\n    local url=\"$2\"\r\n    local hash=\"$3\"\r\n    local ref=\"$4\"\r\n\r\n    cd \"$dir\"\r\n\r\n    # Initialize the repository.\r\n    init_remote \"$url\"\r\n\r\n    # Download data from the repository.\r\n    checkout_ref \"$hash\" \"$ref\" ||\r\n    checkout_hash \"$hash\" \"$ref\" || (\r\n        echo 1>&2 \"Unable to checkout $hash$ref from $url.\"\r\n        exit 1\r\n    )\r\n\r\n    # Checkout linked sources.\r\n    if test -n \"$fetchSubmodules\"; then\r\n        init_submodules\r\n    fi\r\n```\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-03-05T09:00:17Z",
+    "updated_at": "2024-03-05T09:00:18Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/39",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "tree-sitter: 0.20.8 -> 0.21.0 ",
+    "body": "https://github.com/milahu/nur-packages/commit/8bd3fdd2dff7a201f2c0afccdb79ad076d259463\r\n\r\nfix `patchPhase` - source was changed\r\nuse `substituteInPlace --replace-fail` to fail early\r\n\r\nremove `fetchSubmodules` - tree-sitter has no .gitmodules\r\n\r\nping \"maintainer\" @Profpatsch\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-03-05T09:44:35Z",
+    "updated_at": "2024-03-05T17:00:26Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/40",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "nix-init: sort git tags by date",
+    "body": "example: https://github.com/alejandroautalan/pygubu/tags\r\n\r\nexpectd: latest version by date is `v0.34`\r\n\r\nactual: sort by version\r\n\r\n```\r\n$ git ls-remote https://github.com/alejandroautalan/pygubu | grep refs/tags/ | sort -k2 -V -r | head -n1 \r\na730511be5ea10c7dbb1356c182d7f20847e7543        refs/tags/v10.9\r\n```\r\n\r\nalso wrong: use the raw sort order of `git ls-remote`\r\n\r\n```\r\n$ git ls-remote https://github.com/alejandroautalan/pygubu | grep refs/tags/ | head -n1 \r\n11ee7b385031d493faa241bf81e407c69c5b67ef        refs/tags/v0.10.3\r\n```\r\n\r\nexpected: sort by date\r\n\r\nwith https://stackoverflow.com/a/78242565/10440128\r\n\r\n```\r\nrepo=alejandroautalan/pygubu\r\n\r\ncurl -s \"https://github.com/$repo/tags\" |\r\ngrep -oE \\\r\n-e ' href=\"/'\"$repo\"'/releases/tag/[^\"]+\" data-' \\\r\n-e ' datetime=\"[^\"]+\"' \\\r\n-e ' href=\"/'\"$repo\"'/commit/[0-9a-f]{40,}\"' |\r\ncut -d'\"' -f2 |\r\nsed -E 's,^.*/(commit|releases/tag)/,,' |\r\nwhile read name && read time && read hash; do\r\n  echo \"$time $hash $name\"\r\ndone\r\n```\r\n\r\noutput for https://github.com/alejandroautalan/pygubu/tags\r\n\r\n```\r\n2024-02-13T01:27:59Z 7da91e4c94231974770b98b1955e64ed5e888ea8 v0.34\r\n2024-02-11T04:50:12Z 4463c6f3f3fd95be1d99ac518965ed228cd1bb2e v0.33\r\n2024-01-07T01:37:37Z 2d65b4896cb7a95db5b30adbad9c79bcb06f9d54 v0.32\r\n2023-05-29T00:56:28Z 52e2d55064b67fa779030e54670cab137ba3421e v0.31\r\n2023-03-02T04:09:50Z 7914476dd8a0ea0f22a213dcde9c17257d9e6d65 v0.30\r\n2023-01-17T17:54:15Z 880adeaa5189d435920d5d05426b9004b611d927 v0.29\r\n2022-12-12T04:06:11Z 99b7a99fb5a60d7785a29d1687b4197c56eefcae v0.28\r\n2022-11-19T20:46:25Z 402c865bf8fcd6b2869d08aaf5e5896bb63eda99 v0.27\r\n2022-11-01T03:34:52Z d675b07f987dd57cc16dcce085f572ab9b655896 v0.26.2\r\n2022-09-27T21:50:02Z 87ef459144583e81f190279e59b0879570b0bd40 v0.26.1\r\n```\r\n\r\nprobably both solutions can be wrong in rare cases ...\r\n\r\nbut i would expect that \"sort by date\" is more stable\r\nsince mistakes are made early in projects\r\nand the development workflow gets better over time\r\n\r\nping @figsoda @pschmitt @Ninja3047 ",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-03-29T07:54:04Z",
+    "updated_at": "2024-03-29T07:54:04Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/41",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "audio tools should load plugins with pkg-config",
+    "body": "this does not work\r\n\r\n```\r\nnix-shell -p ardour lsp-plugins --run ardour\r\n```\r\n\r\nproblem:\r\nardour does not find the plugins from lsp-plugins\r\nardour > window > plugin manager\r\n\r\npossible solution:\r\nload plugins with pkg-config\r\n\r\n```\r\n$ pkg-config --list-all | cut -d' ' -f1 | xargs pkg-config --libs-only-L\r\n-L/nix/store/l37r2iz78gagcvvc4g5j7argqi81kchi-lsp-plugins-1.2.14/lib\r\n\r\n$ ls /nix/store/l37r2iz78gagcvvc4g5j7argqi81kchi-lsp-plugins-1.2.14/lib/vst/lsp-plugins/*.so | wc -l\r\n177\r\n```\r\n\r\nthis can be implemented in nix only by wrapping the audio tools\r\nand setting these environment variables\r\n\r\n```\r\nLV2_PATH\r\nVST_PATH\r\nVST3_PATH\r\nLXVST_PATH\r\nDSSI_PATH\r\nLADSPA_PATH\r\n```\r\n\r\nfor example, append or prepend this to `LV2_PATH`\r\n\r\n```\r\n/nix/store/l37r2iz78gagcvvc4g5j7argqi81kchi-lsp-plugins-1.2.14/lib/vst\r\n```\r\n\r\nwhy not?\r\nloading all plugins may be too much\r\nand the user may want to load only some plugins via\r\n\r\n```\r\n$HOME/.vst\r\n$HOME/.ladspa\r\n$HOME/.lxvst\r\n$HOME/.vst3\r\n```\r\n\r\nrelated issue:\r\nardour has the literal string `$HOME/.lxvst` in its default `LV2_PATH`\r\nbut `$HOME` should be expanded on runtime\r\n\r\n---\r\n\r\nrelated issue:\r\nsome plugins in lsp-plugins are broken\r\nat least they dont work on my machine\r\n\r\n```\r\n$ LV2_PATH=/nix/store/l37r2iz78gagcvvc4g5j7argqi81kchi-lsp-plugins-1.2.14/lib/vst ardour8\r\nstart clocking\r\nFloating point exception (core dumped)\r\n```\r\n\r\nthe ardour gui crashes at \"indexing plugins\"\r\n\r\n---\r\n\r\nrelated\r\n\r\n- [Ardour and plugins](https://discourse.nixos.org/t/ardour-and-plugins/37160)\r\n- [Creating a standardized audio production environment with flakes](https://discourse.nixos.org/t/creating-a-standardized-audio-production-environment-with-flakes/22191)\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-04-03T16:35:38Z",
+    "updated_at": "2024-04-03T17:25:59Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/42",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "klee: llvm llvmPackages_13 -> llvmPackages",
+    "body": "klee just works with llvmPackages (llvm 16)\r\n\r\n- 2023-10-29 [klee-uclibc](https://github.com/klee/klee-uclibc) 1.4\r\n- 2024-02-08 klee https://github.com/klee/klee/pull/1664\r\n\r\nin https://github.com/NixOS/nixpkgs/pull/302984 llvm was only updated to llvmPackages_13 but i dont see why\r\n\r\npkgs/top-level/all-packages.nix\r\n\r\n```diff\r\n   klayout = libsForQt5.callPackage ../applications/misc/klayout { };\r\n\r\n-  klee = callPackage ../applications/science/logic/klee (with llvmPackages_12; {\r\n+  klee = callPackage ../applications/science/logic/klee (with llvmPackages_13; {\r\n     clang = clang;\r\n     llvm = llvm;\r\n     stdenv = stdenv;\r\n```\r\n\r\nalso:\r\n\r\nklee and klee-uclibc should not use stdenv clang llvm\r\nbut llvmPackages.stdenv llvmPackages.clang llvmPackages.llvm\r\nto make it easier to override the llvm version\r\n\r\nexample:\r\n\r\n```\r\n  klee = callPackage ./klee.nix {\r\n    llvmPackages = llvmPackages_12;\r\n  };\r\n```\r\n\r\nping @numinit\r\n\r\nfixed in\r\n[milahu/nur-packages/pkgs/applications/science/logic/klee/default.nix](https://github.com/milahu/nur-packages/blob/master/pkgs/applications/science/logic/klee/default.nix)\r\n[milahu/nur-packages/pkgs/applications/science/logic/klee/klee-uclibc.nix](https://github.com/milahu/nur-packages/blob/master/pkgs/applications/science/logic/klee/klee-uclibc.nix)\r\n\r\nwhy? i need `klee` for [s2e](https://github.com/S2E/s2e) ([s2e.nix](https://github.com/milahu/nur-packages/blob/master/pkgs/development/libraries/s2e/default.nix)) for [binrec](https://github.com/trailofbits/binrec-tob)\r\n\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+      {
+        "user": "https://github.com/numinit",
+        "content": "+1",
+        "subject_type": "Issue",
+        "created_at": "2024-04-15T00:04:37.976+02:00"
+      }
+    ],
+    "closed_at": null,
+    "created_at": "2024-04-14T12:17:47Z",
+    "updated_at": "2024-06-16T02:07:57Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/43",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "error: function 'computeWheelUrl' called with unexpected argument 'passthru'",
+    "body": "this fails\r\n\r\n```nix\r\n{\r\n  pip-whl = fetchPypi rec {\r\n    pname = \"pip\";\r\n    version = \"24.0\";\r\n    hash = \"sha256-ug0CGhZoZdImUkaWG+wBUv8STekQxcw58RVs4/p8adw=\";\r\n    format = \"wheel\";\r\n    dist = \"py3\";\r\n    python = \"py3\";\r\n    platform = \"any\";\r\n    # no. error: function 'computeWheelUrl' called with unexpected argument 'passthru'\r\n    passthru = { inherit version; };\r\n  };\r\n\r\n  # by default, the version attribute is not exposed\r\n  pip-whl-version = pip-whl.version;\r\n```\r\n\r\nexpected: `computeWheelUrl` should ignore extra arguments\r\n\r\nworkaround\r\n\r\n```nix\r\n{\r\n  pip-whl = let\r\n    version = \"24.0\";\r\n  in ((fetchPypi {\r\n    pname = \"pip\";\r\n    inherit version;\r\n    hash = \"sha256-ug0CGhZoZdImUkaWG+wBUv8STekQxcw58RVs4/p8adw=\";\r\n    format = \"wheel\";\r\n    dist = \"py3\";\r\n    python = \"py3\";\r\n    platform = \"any\";\r\n    # no. error: function 'computeWheelUrl' called with unexpected argument 'passthru'\r\n    #passthru = { inherit version; };\r\n  }) // { inherit version; });\r\n\r\n  pip-whl-version = pip-whl.version;\r\n```\r\n\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-04-17T19:58:16Z",
+    "updated_at": "2024-04-17T19:58:16Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/44",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "substituteInPlace should accept multiple replacement strings for multiple lines",
+    "body": "using substituteInPlace to replace one line with multiple lines is a bit ugly now\r\n\r\n```sh\r\n    substituteInPlace scripts/generate.py \\\r\n      --replace-fail \\\r\n        \"Path(\\\"\" \\\r\n        \"Path(\\\"$out/opt/get-pip/\" \\\r\n      --replace-fail \\\r\n        '    data = requests.get(' \\\r\n        \"$(\r\n          echo '    if os.getenv(\"GET_PIP_OFFLINE\") == \"1\":'\r\n          echo '        return {Version(\"${pip-whl.version}\"): (\"${pip-whl}\", \"'$(sha256sum ${pip-whl} | cut -c1-64)'\")}'\r\n          echo '    data = requests.get('\r\n        )\" \\\r\n```\r\n\r\nmaybe we can allow 2 or more arguments for `--replace`\r\nthe first argument is the search string\r\narguments 2 and following are the replacement string\r\nand multiple strings are joined with `\\n`\r\n\r\nso this would look like\r\n\r\n```sh\r\n    # NOTE this does not work\r\n    substituteInPlace scripts/generate.py \\\r\n      --replace-fail \\\r\n        \"Path(\\\"\" \\\r\n        \"Path(\\\"$out/opt/get-pip/\" \\\r\n      --replace-fail \\\r\n        '    data = requests.get(' \\\r\n        '    if os.getenv(\"GET_PIP_OFFLINE\") == \"1\":' \\\r\n        '        return {Version(\"${pip-whl.version}\"): (\"${pip-whl}\", \"'$(sha256sum ${pip-whl} | cut -c1-64)'\")}' \\\r\n        '    data = requests.get(' \\\r\n```\r\n\r\nwhy?\r\npatching with substituteInPlace is more stable than with patch files\r\nthe leading quotes for every line are needed to preserve indents\r\n\r\nhow?\r\nthis would require that all file paths come before the `--replace` arguments\r\n\r\nalternatives?\r\n`lib.escapeShellArg` and `builtins.concatStringsSep`\r\n~~but with $'...' dollar-prefixed bash strings for special characters like newlines\r\nsee also #45~~\r\n\r\n```sh\r\n    substituteInPlace scripts/generate.py \\\r\n      --replace-fail \\\r\n        \"Path(\\\"\" \\\r\n        \"Path(\\\"$out/opt/get-pip/\" \\\r\n      --replace-fail \\\r\n        '    data = requests.get(' \\\r\n        ${lib.escapeShellArg (builtins.concatStringsSep \"\\n\" [\r\n          ''    if os.getenv(\"GET_PIP_OFFLINE\") == \"1\":''\r\n          ''        return {Version(\"${pip-whl.version}\"): (\"${pip-whl}\", \"'$(sha256sum ${pip-whl} | cut -c1-64)'\")}''\r\n          ''    data = requests.get(''\r\n        ])} \\\r\n```\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-04-18T08:18:56Z",
+    "updated_at": "2024-04-18T10:19:38Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/45",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "lib.escapeShellArg should return $'...' ANSI-C quoted strings",
+    "body": "for special characters like newlines\r\n\r\nactual\r\n\r\n```\r\nnix-repl> lib.escapeShellArg \"a\\nb\"\r\n\"'a\\nb'\"\r\n\r\nnix-repl> lib.strings.toShellVar \"x\" \"a\\nb\"\r\n\"x='a\\nb'\"\r\n```\r\n\r\nexpected: prefix the '...' strings with $ to $'...' strings\r\nbecause 'a\\nb' != $'a\\nb'\r\n\r\n```\r\n$ echo 'a\\nb'\r\na\\nb\r\n\r\n$ echo $'a\\nb'\r\na\r\nb\r\n```\r\n\r\n\r\n\r\n[How does the leading dollar sign affect single quotes in Bash?](https://stackoverflow.com/questions/11966312/how-does-the-leading-dollar-sign-affect-single-quotes-in-bash)\r\n\r\n> `$'` is a special syntax ([fully explained here](http://www.gnu.org/software/bash/manual/html_node/ANSI_002dC-Quoting.html#ANSI_002dC-Quoting)) which enables ANSI-C string processing.\r\n\r\n[ANSI-C Quoting (Bash manual)](https://www.gnu.org/software/bash/manual/html_node/ANSI_002dC-Quoting.html#ANSI_002dC-Quoting)\r\n\r\n<blockquote>\r\n\r\n3.1.2.4 ANSI-C Quoting\r\n\r\nCharacter sequences of the form $’string’ are treated as a special kind of single quotes. The sequence expands to string, with backslash-escaped characters in string replaced as specified by the ANSI C standard.\r\n\r\n</blockquote>\r\n\r\n[What does it mean to have a $\"dollarsign-prefixed string\" in a script?](https://unix.stackexchange.com/questions/48106/what-does-it-mean-to-have-a-dollarsign-prefixed-string-in-a-script)\r\n\r\n<blockquote>\r\n\r\nThere are two different things going on here, both documented in the `bash` manual\r\n\r\n`$'`\r\n\r\nDollar-sign single quote is a special form of quoting:\r\n\r\n[ANSI C Quoting](http://www.gnu.org/software/bash/manual/html_node/ANSI_002dC-Quoting.html)\r\n\r\n> Words of the form $'string' are treated specially. The word expands to string, with backslash-escaped characters replaced as specified by the ANSI C standard.\r\n\r\n`$\"`\r\n\r\nDollar-sign double-quote is for localization:\r\n\r\n[Locale translation](http://www.gnu.org/software/bash/manual/html_node/Locale-Translation.html)\r\n\r\n> A double-quoted string preceded by a dollar sign (‘$’) will cause the string to be translated according to the current locale. If the current locale is C or POSIX, the dollar sign is ignored. If the string is translated and replaced, the replacement is double-quoted.\r\n\r\n</blockquote>\r\n\r\nsimilar but different issue\r\n[shellAliases are not properly escaped (also escapeShellArg does not handle newlines) nixpkgs#25143](https://github.com/NixOS/nixpkgs/issues/25143)\r\n\r\n> Actually in this case they aren't newlines — they aren't handled by the shell parsing, but by the program (or builtin) the text is getting passed to, as you can see by running `echo '\\n'`. So what's happening here is that nix is interpreting the escape sequence too early, and you want to pass the literal characters `\\` and `n` to time — so you'll want to put `\\\\n` in the nix expression.\r\n\r\nsimilar but different issue\r\n[Need help understanding how to escape special characters in the list of str type](https://discourse.nixos.org/t/need-help-understanding-how-to-escape-special-characters-in-the-list-of-str-type/11389)\r\n\r\n<blockquote>\r\n\r\nEscaping rules are described in the [Nix manual 485](https://nixos.org/manual/nix/stable/#ssec-values). For `''` strings:\r\n\r\n> Since `${` and `''` have special meaning in indented strings, you need a way to quote them. `$` can be escaped by prefixing it with `''` (that is, two single quotes), i.e., `''$` . `''` can be escaped by prefixing it with `'` , i.e., `'''` . `$` removes any special meaning from the following `$` . Linefeed, carriage-return and tab characters can be written as `''\\n` , `''\\r` , `''\\t` , and `''\\` escapes any other character.\r\n\r\nYou should replace `${ref}` with `''${ref}` in your example, so that it does not try to interpolate a Nix variable `ref`. The sequence `=>` is not special. Unfortunately the escaping rules are different from double-quote `\"` strings, where `\\` is used to escape `${` instead.\r\n\r\n</blockquote>\r\n\r\n[python shlex](https://docs.python.org/3/library/shlex.html) does it wrong, too...\r\n\r\n```\r\n$ python\r\n>>> import shlex\r\n>>> shlex.quote(\"a\\nb\")\r\n\"'a\\nb'\"\r\n>>> shlex.join([\"a\\nb\"])\r\n\"'a\\nb'\"\r\n```\r\n\r\n[javascript shlex](https://www.npmjs.com/package/shlex) does it wrong, too... (https://github.com/rgov/node-shlex/issues/27)\r\n\r\n```\r\n$ cd $(mktemp -d)\r\n$ npm init -y\r\n$ npm install shlex\r\n$ node\r\n> const shlex = require(\"shlex\")\r\n> shlex.quote(\"a\\nb\")\r\n\"'a\\nb'\"\r\n> shlex.join([\"a\\nb\"])\r\n\"'a\\nb'\"\r\n```\r\n\r\nim starting to notice a pattern... : P\r\n\r\nwhen all are doing it \"wrong\"\r\nthen its probably safe to always prepend a `$` dollar sign to the result\r\n\r\nbut wait:\r\n\r\nhttps://github.com/rgov/node-shlex\r\n\r\n<blockquote>\r\n\r\nAs of version 2.0.0, Bash's [ANSI C strings](https://www.gnu.org/software/bash/manual/html_node/ANSI_002dC-Quoting.html) (`$'x'`) and [locale-specific translation strings](https://www.gnu.org/software/bash/manual/html_node/Locale-Translation.html) (`$\"x\"`) are supported. This diverges from the Python shlex behavior but makes parsing more accurate.\r\n\r\n</blockquote>\r\n\r\n```\r\n$ grep shlex package.json\r\n    \"shlex\": \"^2.1.2\"\r\n```\r\n\r\nbut this affects only shlex.split\r\n\r\n```\r\n> shlex.split(\"$'a\\nb'\")\r\n[ 'a\\nb' ]\r\n```\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": "2024-04-18T09:40:02Z",
+    "created_at": "2024-04-18T08:43:27Z",
+    "updated_at": "2024-04-18T09:41:25Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/46",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "nix repl should allow bash job control suspension with Ctrl-Z",
+    "body": "currently Ctrl-Z has no effect in `nix repl`\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-04-18T08:51:03Z",
+    "updated_at": "2024-04-21T08:49:22Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/47",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "wine: $WINEPREFIX is not owned by you",
+    "body": "installing wine apps to `/nix/store` fails because\r\n\r\n[wine/libs/wine/config.c](https://github.com/vindo-app/wine/blob/master/libs/wine/config.c)\r\n\r\n```c\r\n    if (st.st_uid != getuid()) fatal_error( \"%s is not owned by you\\n\", config_dir );\r\n```\r\n\r\nwine complains about the ownership of `WINEPREFIX`\r\n\r\n```\r\n$ ./result/bin/wenv python\r\nwine: '/nix/store/mcbrxyi2q7kksyrxm7px9l0ik3rxv94h-wenv-0.5.1/share/wenv/win32' is not owned by you\r\n```\r\n\r\n> WINEPREFIX is not owned by you\r\n\r\ni found many discussions on this problem\r\nbut no solution to make wine ignore the ownership\r\nworkarounds: sudo, chown, symlinks, bind mount, LD_PRELOAD, ...\r\n\r\n\r\npossible solution: `WINEPREFIX_IGNORE_OWNER=1 wine foo.exe`\r\n\r\n```diff\r\n-    if (st.st_uid != getuid()) fatal_error( \"%s is not owned by you\\n\", config_dir );\r\n+    if (st.st_uid != getuid() && getenv(\"WINEPREFIX_IGNORE_OWNER\") != \"1\") fatal_error( \"%s is not owned by you\\n\", config_dir );\r\n```\r\n\r\ndownstream issue https://github.com/pleiszenburg/wenv/issues/22#issuecomment-2061529176\r\n\r\n## why\r\n\r\n> installing wine apps to `/nix/store` fails\r\n\r\nusing the default `WINEPREFIX=$HOME/.wine` is a waste of disk space\r\nan empty `WINEPREFIX` has about 500 MB, half of that is the mono dotnet runtime\r\nat least the read-only files should be symlinked from `/nix/store` to `$HOME/.wine`\r\n\r\ni just want to run a stupid command line tool ([qaac](https://github.com/milahu/nur-packages/tree/master/pkgs/applications/audio/qaac))\r\nwhich does not need any write access to `WINEPREFIX`\r\nso this should just work with a read-only `WINEPREFIX` in `/nix/store`\r\n\r\n## wine2nix\r\n\r\n[What is your approach to packaging Wine applications with Nix derivations?](https://discourse.nixos.org/t/what-is-your-approach-to-packaging-wine-applications-with-nix-derivations/12799)\r\n\r\n- [wrapWine by lucasew](https://github.com/lucasew/nixcfg/blob/master/nix/pkgs/wrapWine.nix)\r\n  - defers `installPhase` to the first run, then installs wine and apps to `~/.wine-nix/`\r\n    - slow init: `the wine configuration is being updated, please wait...`\r\n  - `nix-build ./nur.nix -A packages.pinball`\r\n    - `error: Function called without required argument \"wrapWine\"`\r\n- [mkWindowsApp by emmanuelrosa](https://github.com/emmanuelrosa/erosanix/tree/master/pkgs/mkwindowsapp)\r\n  - defers `installPhase` to the first run, then installs wine and apps to `~/.cache/mkWindowsApp/`\r\n    - slow init: `the wine configuration is being updated, please wait...`\r\n    - apps are installed into separate paths\r\n  - [foobar2000.nix](https://github.com/emmanuelrosa/erosanix/blob/master/pkgs/foobar2000.nix)\r\n  - `nix-build . -A foobar2000`\r\n\r\n<blockquote>\r\n\r\nFrom what I’ve read there are some challenges in handling the amount of mutability required by some applications, though I’m sure there is probably a function or two that could at least ease the general process.\r\n\r\n</blockquote>\r\n\r\n<blockquote>\r\n\r\nHere are some related links I’ve discovered so far:\r\n\r\n- [WINE configuration? · Issue #10165 · NixOS/nixpkgs · GitHub](https://github.com/NixOS/nixpkgs/issues/10165) - At first I thought this would be about configuring the Wine package itself, but this Github issue explores exactly this topic and already has some interesting links and suggestions.\r\n- [4 new audio derivations by joelmo · Pull Request #10006 · NixOS/nixpkgs · GitHub](https://github.com/NixOS/nixpkgs/pull/10006) - An attempt to add some windows audio packages… Though ultimately discluded for their proprietariness, may contain an interesting approach.\r\n- [Added YNAB paid wine package. by jraygauthier · Pull Request #7597 · NixOS/nixpkgs · GitHub](https://github.com/NixOS/nixpkgs/pull/7597) - Discluded for similar reasons, but uses writeScript to create a derivation that wraps the program with some prior Wine setup checks and configuration that might be interesting.\r\n- [https://github.com/lucasew/nixcfg/blob/e542e743774f499f996a4f886a8d4a4133fce258/packages/wrapWine.nix](https://github.com/lucasew/nixcfg/blob/e542e743774f499f996a4f886a8d4a4133fce258/packages/wrapWine.nix) Shared recently in the previously mentioned issue, this wrapWine module seems like a generalised approach, though I’m yet to dig into the rest of the repo to see how it’s used in their packages.\r\n\r\n</blockquote>\r\n\r\nping @lucasew @emmanuelrosa ",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-04-20T11:37:33Z",
+    "updated_at": "2024-04-27T13:52:11Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/48",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "gdb fails on wrapped executables: not in executable format: file format not recognized",
+    "body": "```\r\n$ gdb --args $(which wine)\r\n\"/nix/store/fa1fn9p561cy7nlzvdgmkgzpy20fxcm5-wine-9.0/bin/wine\": not in executable format: file format not recognized\r\n```\r\n\r\nbecause `wine` is a wrapper for `.wine`\r\n\r\n```\r\n$ head -n1 $(which wine); tail -n1 $(which wine)\r\n#! /nix/store/bdzvgpz8y5qd4iy4p59zl74l2qk5gcgy-bash-5.2-p21/bin/bash -e\r\nexec \"/nix/store/fa1fn9p561cy7nlzvdgmkgzpy20fxcm5-wine-9.0/bin/.wine\"  \"$@\" \r\n```\r\n\r\n```\r\n$ file -b /nix/store/fa1fn9p561cy7nlzvdgmkgzpy20fxcm5-wine-9.0/bin/.wine\r\nELF 32-bit LSB pie executable, Intel 80386, version 1 (SYSV), dynamically linked, interpreter /nix/store/qcssalnxr02k3fyr3n6lvrb4p842k8n2-glibc-2.38-27/lib/ld-linux.so.2, for GNU/Linux 3.10.0, not stripped\r\n```\r\n\r\nupstream issue: https://github.com/NixOS/nixpkgs/issues/95027 by @davidak\r\n\r\n## possible solutions\r\n\r\n### gdb bash\r\n\r\nhttps://developers.redhat.com/articles/2022/12/27/debugging-binaries-invoked-scripts-gdb#debugging_programs_invoked_via_fork_and_exec_from_a_wrapper_script\r\n\r\n```\r\ngdb --args $(which bash) $(which wine)\r\n```\r\n\r\nideally gdb should have an option to parse the shebang line of the wrapper script\r\nand automatically call the script interpreter\r\n\r\nnot all wrappers use `exec` so `catch exec` will not always work\r\n`break main` is more generic\r\n\r\n### modify the wrapper script\r\n\r\ncopy the wrapper script and replace `exec` with `exec gdb --args`\r\n\r\n```\r\ncd $(mktemp -d)\r\ncp $(which wine) wine.sh\r\nsed -i 's/exec /exec gdb --args /' wine.sh\r\n./wine.sh asdf.exe\r\n```\r\n\r\nor use [writable-nix-store](https://github.com/milahu/writable-nix-store) to modify the wrapper script in `/nix/store`\r\n\r\nexample: [chromium-wrapper.sh](https://github.com/milahu/aiohttp_chromium/raw/main/test/chromium-capture-http/gdb/chromium-wrapper.sh)\r\n\r\n### gdb exec-wrapper\r\n\r\nhttps://reverseengineering.stackexchange.com/questions/19497/gdb-dont-break-when-i-use-exec-wrapper-script-to-exec-my-target-binary\r\n\r\nless useful\r\n\r\nthis requires the path of the wrapped binary\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-04-24T14:38:33Z",
+    "updated_at": "2024-04-24T15:34:43Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/49",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "python3.pkgs.scancode-toolkit: PermissionError: [Errno 13] Permission denied: /lib/python3.11/site-packages/licensedcode/data/cache",
+    "body": "the [scancode](https://github.com/nexB/scancode-toolkit) binary is not working\r\n\r\n```\r\n$ nix-shell -p python3.pkgs.scancode-toolkit\r\n\r\n$ python3 -c \"import scancode; print('ok')\"\r\nok\r\n\r\n$ scancode\r\nTraceback (most recent call last):\r\n  File \"/nix/store/y3ja4pkiwvjzwm7dx25qqrsk13qr7s4d-python3.11-scancode-toolkit-32.1.0/bin/.scancode-wrapped\", line 6, in <module>\r\n    from scancode.cli import scancode\r\n  File \"/nix/store/y3ja4pkiwvjzwm7dx25qqrsk13qr7s4d-python3.11-scancode-toolkit-32.1.0/lib/python3.11/site-packages/scancode/__init__.py\", line 16, in <module>\r\n    from commoncode import fileutils\r\n  File \"/nix/store/4phgyrm3wq4z6i0x0ppq485w7xl4cnlr-python3.11-commoncode-31.0.3/lib/python3.11/site-packages/commoncode/fileutils.py\", line 21, in <module>\r\n    from scancode_config import scancode_temp_dir as _base_temp_dir\r\n  File \"/nix/store/y3ja4pkiwvjzwm7dx25qqrsk13qr7s4d-python3.11-scancode-toolkit-32.1.0/lib/python3.11/site-packages/scancode_config.py\", line 185, in <module>\r\n    _create_dir(licensedcode_cache_dir)\r\n  File \"/nix/store/y3ja4pkiwvjzwm7dx25qqrsk13qr7s4d-python3.11-scancode-toolkit-32.1.0/lib/python3.11/site-packages/scancode_config.py\", line 52, in _create_dir\r\n    os.makedirs(location)\r\n  File \"<frozen os>\", line 225, in makedirs\r\nPermissionError: [Errno 13] Permission denied: '/nix/store/y3ja4pkiwvjzwm7dx25qqrsk13qr7s4d-python3.11-scancode-toolkit-32.1.0/lib/python3.11/site-packages/licensedcode/data/cache'\r\n```\r\n\r\nfix: pkgs/development/python-modules/scancode-toolkit/default.nix\r\n\r\n```\r\n  postPatch = ''\r\n    substituteInPlace src/scancode_config.py \\\r\n      --replace-fail \\\r\n        \"std_license_cache_dir = join(scancode_src_dir, 'licensedcode', 'data', 'cache')\" \\\r\n        \"std_license_cache_dir = join(os.environ['HOME'], '.cache', 'scancode-toolkit', 'licensedcode', 'data', 'cache')\" \\\r\n  '';\r\n```\r\n\r\nthis will not work because `$HOME` would be taken literally, and not be expanded\r\n\r\n```\r\n  makeWrapperArgs = [\r\n    \"--set-default\" \"SCANCODE_LICENSE_INDEX_CACHE\" \"$HOME/.cache/scancode-toolkit/licensedcode/data\"\r\n  ];\r\n```\r\n\r\nping @fabaff @NickCao via https://github.com/NixOS/nixpkgs/pull/299314",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": "2024-05-01T13:58:09Z",
+    "created_at": "2024-05-01T13:50:25Z",
+    "updated_at": "2024-05-01T13:58:09Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/50",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "tagger: rename /bin/org.nickvision.tagger to /bin/tagger",
+    "body": null,
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": "2024-05-08T07:09:34Z",
+    "created_at": "2024-05-08T07:04:00Z",
+    "updated_at": "2024-05-08T07:09:34Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/51",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "tagger: GLib-GIO-CRITICAL: This application can not open files",
+    "body": "```\r\n$ org.nickvision.tagger file.mp3\r\n(org.nickvision.tagger:118601): GLib-GIO-CRITICAL: This application can not open files.\r\n```\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": "2024-05-08T07:08:43Z",
+    "created_at": "2024-05-08T07:07:32Z",
+    "updated_at": "2024-05-08T07:08:43Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/52",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "gitfs: AttributeError: module 'collections' has no attribute 'MutableMapping'",
+    "body": "```\r\n$ gitfs --help\r\nTraceback (most recent call last):\r\n  File \"/nix/store/8f0fyssl2ah5w34xqmxl2clpk0bjn8z6-gitfs-0.5.2/bin/.gitfs-wrapped\", line 9, in <module>\r\n    sys.exit(mount())\r\n             ^^^^^^^\r\n  File \"/nix/store/8f0fyssl2ah5w34xqmxl2clpk0bjn8z6-gitfs-0.5.2/lib/python3.11/site-packages/gitfs/__init__.py\", line 19, in mount\r\n    from gitfs.mounter import start_fuse\r\n  File \"/nix/store/8f0fyssl2ah5w34xqmxl2clpk0bjn8z6-gitfs-0.5.2/lib/python3.11/site-packages/gitfs/mounter.py\", line 25, in <module>\r\n    from gitfs.utils import Args\r\n  File \"/nix/store/8f0fyssl2ah5w34xqmxl2clpk0bjn8z6-gitfs-0.5.2/lib/python3.11/site-packages/gitfs/utils/__init__.py\", line 16, in <module>\r\n    from .args import Args\r\n  File \"/nix/store/8f0fyssl2ah5w34xqmxl2clpk0bjn8z6-gitfs-0.5.2/lib/python3.11/site-packages/gitfs/utils/args.py\", line 30, in <module>\r\n    from gitfs.cache import lru_cache\r\n  File \"/nix/store/8f0fyssl2ah5w34xqmxl2clpk0bjn8z6-gitfs-0.5.2/lib/python3.11/site-packages/gitfs/cache/__init__.py\", line 16, in <module>\r\n    from .lru import LRUCache\r\n  File \"/nix/store/8f0fyssl2ah5w34xqmxl2clpk0bjn8z6-gitfs-0.5.2/lib/python3.11/site-packages/gitfs/cache/lru.py\", line 22, in <module>\r\n    from .base import Cache\r\n  File \"/nix/store/8f0fyssl2ah5w34xqmxl2clpk0bjn8z6-gitfs-0.5.2/lib/python3.11/site-packages/gitfs/cache/base.py\", line 18, in <module>\r\n    class Cache(collections.MutableMapping):\r\n                ^^^^^^^^^^^^^^^^^^^^^^^^^^\r\nAttributeError: module 'collections' has no attribute 'MutableMapping'\r\n```\r\n\r\nfixed by\r\n\r\n```diff\r\n--- /a/nix/store/8f0fyssl2ah5w34xqmxl2clpk0bjn8z6-gitfs-0.5.2/lib/python3.11/site-packages/gitfs/cache/base.py  1970-01-01 01:00:01.000000000 +0100\r\n+++ /b/nix/store/8f0fyssl2ah5w34xqmxl2clpk0bjn8z6-gitfs-0.5.2/lib/python3.11/site-packages/gitfs/cache/base.py  2024-05-08 18:10:55.318883086 +0200\r\n@@ -14,8 +14,12 @@\r\n \r\n import collections\r\n \r\n+try:\r\n+    from collections.abc import MutableMapping\r\n+except ImportError:\r\n+    from collections import MutableMapping\r\n \r\n-class Cache(collections.MutableMapping):\r\n+class Cache(MutableMapping):\r\n     \"\"\"Mutable mapping to serve as a simple cache or cache base class.\r\n \r\n     This class discards arbitrary items using :meth:`popitem` to make\r\n```\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-05-08T16:05:50Z",
+    "updated_at": "2024-05-08T16:18:51Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/53",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "python3Packages.pygit2: add cacert to propagatedBuildInputs",
+    "body": "... otherwise packages need to add\r\nboth `python3Packages.pygit2` and `cacert` to their `propagatedBuildInputs`\r\n\r\n```\r\n$ grep -r pygit2 pkgs/development/python-modules/\r\npkgs/development/python-modules/git-annex-adapter/default.nix:, pygit2\r\npkgs/development/python-modules/git-annex-adapter/default.nix:    pygit2\r\npkgs/development/python-modules/craft-application/default.nix:  pygit2,\r\npkgs/development/python-modules/craft-application/default.nix:    pygit2\r\npkgs/development/python-modules/fsspec/default.nix:, pygit2\r\npkgs/development/python-modules/fsspec/default.nix:      pygit2\r\npkgs/development/python-modules/powerline/default.nix:, pygit2\r\npkgs/development/python-modules/powerline/default.nix:    pygit2\r\npkgs/development/python-modules/scmrepo/default.nix:, pygit2\r\npkgs/development/python-modules/scmrepo/default.nix:    pygit2\r\n^C\r\n```\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-05-08T19:39:51Z",
+    "updated_at": "2024-05-08T19:39:51Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/54",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "tageditor: Error: JSON export has not been enabled when building the tag editor.",
+    "body": "```\r\n$ tageditor export -f 01.mp3\r\nError: JSON export has not been enabled when building the tag editor.\r\n```\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-05-10T19:14:29Z",
+    "updated_at": "2024-05-10T19:14:29Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/55",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "fetch sources by git commit hash",
+    "body": "git already is a content-addressed store\r\nso for [fixed output derivations in nix](https://nixos.org/manual/nix/stable/language/advanced-attributes.html?highlight=outputHash#adv-attr-outputHashAlgo), there should be an `outputHashAlgo = \"git\"`\r\n\r\nhttps://github.com/NixOS/rfcs/pull/133\r\n\r\n> Nix should support content-addressed store objects using git blob + tree hashing, and Nix-unaware remote stores that serve git objects.\r\n\r\nhttps://discourse.nixos.org/t/nix-sha256-is-bug-not-feature-solution-a-global-cas-filesystem/15791\r\n\r\nhttps://github.com/NixOS/nix/pull/10068\r\n\r\nhttps://github.com/NixOS/nix/pull/10344\r\n\r\nhttps://discourse.nixos.org/t/2024-03-25-nix-team-meeting-minutes-133/42167\r\n\r\n> New design: take advantage of Git tree hashes for tarball verification\r\n\r\nhttps://github.com/NixOS/nix/pull/9485\r\n\r\n> In combination with lazy-trees, this reduces the disk space required for flakes (e.g. different revisions of nixpkgs) by a lot.\r\n\r\n<blockquote>\r\n\r\nWe have two kinds of tree hashes:\r\n\r\n- tree hashes from git commits, which do not correspond to fetched trees in general\r\n- tree hashes from file system objects returned by fetchTree\r\n\r\nWhich one is this, and what is the purpose of exposing it to the expression language?\r\n\r\n</blockquote>\r\n\r\nhttps://github.com/NixOS/nix/pull/8918\r\n\r\n\r\n\r\n\r\nhttps://github.com/canva-public/js2nix/blob/main/docs/implementation_details.md\r\n\r\n<blockquote>\r\n\r\n### Packages from unknown registries\r\n\r\njs2nix relies on the tarball URLs in the `yarn.lock` file being able to contain a SHA1 sum of the tarball content in the URL fragment. That is the case for `registry.yarnpkg.com` and `registry.npmjs.org` hosts, but not for other registries. In an average `yarn.lock` file, the majority of the URLs will point to those first two registries. However, for example, if a dependency is defined as a direct Github one:\r\n\r\n```json\r\n{\r\n  \"dependencies\": {\r\n    \"chimp\": \"hacker/chimp#dfa9125b498297f848e6a5f9eabbf55bf3eb1318\"\r\n  }\r\n}\r\n```\r\n\r\nyarn won't provide a SHA1 sum for that URL, which makes it impossible to construct a Nix expression for that package since Nix requires SHA sums because of reproducibility. Similar to the local packages approach, js2nix doesn't make assumptions here and doesn't fetch these packages internally and infer such SHAs somehow. Rather, it relies on the user to provide such SHAs. \r\n\r\n\r\n</blockquote>\r\n\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-05-20T06:18:03Z",
+    "updated_at": "2024-05-20T06:18:03Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/56",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "rarcrack: remove in favor of john the ripper",
+    "body": "[john](https://github.com/openwall/john) with 10K stars is 50x more popular than [rarcrack](https://github.com/jaredsburrows/Rarcrack) with 200 stars\r\n\r\nusing john to crack rar passwords\r\n\r\n```\r\nrar2john asdf.rar > asdf.rar.hashes\r\njohn asdf.rar.hashes\r\n```\r\n\r\nping @davidak \r\n\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-05-24T15:54:19Z",
+    "updated_at": "2024-05-26T11:55:50Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/57",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "squashfsTools: rename to squashfs-tools",
+    "body": "make it consistent with other packages and\r\n`pkgs/tools/filesystems/squashfs-tools-ng/`\r\n\r\nthe sourceforge projet name is [squashfs](https://sourceforge.net/projects/squashfs/)\r\nbut the github project name is [squashfs-tools](https://github.com/plougher/squashfs-tools)\r\n\r\n```\r\ngit mv pkgs/tools/filesystems/squashfs pkgs/tools/filesystems/squashfs-tools\r\nsed -i 's|/tools/filesystems/squashfs |/tools/filesystems/squashfs-tools |' pkgs/top-level/all-packages.nix\r\ngit add pkgs/top-level/all-packages.nix\r\ngit commit -m \"squashfsTools: move to squashfs-tools\"\r\n\r\nsed -i 's/^  squashfsTools = /  squashfs-tools = /' pkgs/top-level/all-packages.nix\r\ngit add pkgs/top-level/all-packages.nix\r\nsed -i 's/^  squid4 =/  squashfsTools = squashfs-tools;\\n  squid4 =/' pkgs/top-level/aliases.nix\r\ngit add pkgs/top-level/aliases.nix\r\nsed -i 's/ pname = \"squashfs\"/ pname = \"squashfs-tools\"/' pkgs/tools/filesystems/squashfs-tools/default.nix\r\ngit add pkgs/tools/filesystems/squashfs-tools/default.nix\r\ngit commit -m \"squashfsTools: rename to squashfs-tools\"\r\n```\r\n\r\ntwo commits so `git mv` does not break the git history of\r\n`pkgs/tools/filesystems/squashfs-tools/default.nix`\r\n\r\nping @ruuda\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+      {
+        "user": "https://github.com/mgord9518",
+        "content": "+1",
+        "subject_type": "Issue",
+        "created_at": "2024-06-19T10:54:15.031+02:00"
+      }
+    ],
+    "closed_at": null,
+    "created_at": "2024-05-27T15:56:25Z",
+    "updated_at": "2024-05-27T16:02:37Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/58",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "mkDerivation: use __structuredAttrs to pass makeFlags/cmakeFlags/... as array of strings",
+    "body": "https://github.com/NixOS/nixpkgs/issues/114044\r\n\r\nhttps://discourse.nixos.org/t/cmakeflags-and-spaces-in-option-values/20170\r\n\r\n<blockquote>\r\n\r\n`cmakeFlags` are currently passed to CMake as follows:\r\n\r\n[pkgs/development/tools/build-managers/cmake/setup-hook.sh](https://github.com/NixOS/nixpkgs/blob/b6236dbddb6852a9567588f1a87ba2521bb71e58/pkgs/development/tools/build-managers/cmake/setup-hook.sh#L121-L122)\r\n      \r\n```\r\ncmake ${cmakeDir:-.} $cmakeFlags \"${cmakeFlagsArray[@]}\"\r\n```\r\n\r\nso Bash will tokenize them on spaces and there is no way to prevent it.\r\n\r\nThe only alternative is adding the flag to `cmakeFlagsArray` in a Bash code. For example:\r\n\r\n```\r\npreConfigure = ''\r\n  cmakeFlagsArray+=(\r\n    \"-DSOMELIB_CXX_FLAGS=\\\"-O3 -march=native\\\"\"\r\n  )\r\n'';\r\n```\r\n\r\nIn the future, this might be possible from Nix through [__structuredAttrs](https://github.com/NixOS/nixpkgs/pull/72074).\r\n\r\n\r\n</blockquote>\r\n\r\n\r\nhttps://github.com/NixOS/nixpkgs/pull/175649\r\n\r\nworkaround\r\n\r\n```nix\r\n{\r\n  makeFlags = [\r\n    # FIXME stdenv.mkDerivation fails to preserve the space after \"-fcommon\"\r\n    #''EXTRA_CFLAGS=\"-fcommon -DTARGET_FORMAT=${targetFormat}\"''\r\n    # no. in bash, the backslash is a separate char of the string\r\n    #\"EXTRA_CFLAGS=-fcommon\\\\ -DTARGET_FORMAT=${targetFormat}\"\r\n  ]; \r\n\r\n  preConfigure = ''\r\n    # no. gcc: error: unrecognized command-line option '-fcommon -DTARGET_FORMAT=AVM_LE'\r\n    #makeFlagsArray+=('EXTRA_CFLAGS=\"-fcommon -DTARGET_FORMAT=${targetFormat}\"')\r\n    makeFlagsArray+=('EXTRA_CFLAGS=-fcommon -DTARGET_FORMAT=${targetFormat}')\r\n  '';\r\n```\r\n\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-05-27T17:07:36Z",
+    "updated_at": "2024-05-27T17:21:37Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/59",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "ffmpeg-full: add rubberband - fix: No such filter: 'rubberband'",
+    "body": "fix\r\n\r\n```\r\n$ ffmpeg -i src.flac -filter:a \"rubberband=pitch=0.9438743126816935,rubberband=tempo=1/0.9438743126816935\" dst.flac\r\nNo such filter: 'rubberband'\r\n```\r\n\r\nneeded for [How to change pitch and tempo together, reliably with ffmpeg](https://stackoverflow.com/questions/40564451/how-to-change-pitch-and-tempo-together-reliably-with-ffmpeg)\r\n\r\nworkaround: use the rubberband executable\r\nnote: rubberband requires files, not pipes, because it runs in 2 passes\r\n\r\n```\r\nffmpeg -i src.flac src.wav\r\nrubberband --time 0.9438743126816935 --frequency 0.9438743126816935 src.wav dst.wav\r\nffmpeg -i dst.wav dst.flac\r\n```\r\n\r\n### alternatives to rubberband\r\n\r\nuse other ffmpeg filters ...\r\n\r\n`atempo` to change tempo\r\n\r\n```sh\r\n# change tempo from 25fps to 24000/1001fps\r\nsrc=src.flac\r\nffmpeg -i \"$src\" \\\r\n  -af atempo=\"(24000/1001)/25\" \\\r\n  dst.flac\r\n```\r\n\r\n`asetrate` and `aresample` to change tempo and pitch\r\n\r\n```sh\r\n# change tempo and pitch from 25fps to 24000/1001fps\r\nsrc=src.flac\r\nstreams=a:0\r\nsrc_sr=$(ffprobe -loglevel error -select_streams $streams -show_entries stream=sample_rate -of default=nw=1:nk=1 \"$src\")\r\ndst_sr=48000\r\nffmpeg -i \"$src\" \\\r\n  -af asetrate=\"$src_sr*(24000/1001)/25,aresample=resampler=soxr:out_sample_rate=$dst_sr\" \\\r\n  dst.flac\r\n```\r\n\r\n\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-05-30T09:16:34Z",
+    "updated_at": "2024-05-30T11:04:53Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/60",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "SDL2_ttf: error: SDL.h: No such file or directory",
+    "body": "```\r\ng++ -g3 -Ofast -std=c++14 -D__STDC_CONSTANT_MACROS -Wall -Wextra -Wno-deprecated -Wno-deprecated-declarations -Wdisabled-optimization -Wctor-dtor-privacy -Woverloaded-virtual -Wno-unused -Wno-missing-field-initializers -I/usr/local/include/   -c -o display.o display.cpp\r\nIn file included from display.h:3,\r\n                 from display.cpp:1:\r\n/nix/store/d6dwzivh7jb3ajqalpjz5xa0agl3awpw-SDL2_ttf-2.22.0/include/SDL2/SDL_ttf.h:39:10: fatal error: SDL.h: No such file or directory\r\n   39 | #include \"SDL.h\"\r\n      |          ^~~~~~~\r\n```\r\n\r\n\r\nfix:\r\n\r\n```\r\n  # fix: error: SDL.h: No such file or directory\r\n  # https://ask.replit.com/t/sdl-in-c-has-a-problem-with-sdl-ttf-h-not-finding-sdl-h/80983/6\r\n  CPATH = lib.makeSearchPath \"include/SDL2\" [ SDL2.dev ];\r\n  CFLAGS = \"-lSDL2 -lSDL2_ttf\";\r\n```\r\n\r\nbased on https://ask.replit.com/t/sdl-in-c-has-a-problem-with-sdl-ttf-h-not-finding-sdl-h/80983/7\r\n\r\nrelated\r\n\r\n- https://github.com/NixOS/nixpkgs/issues/296692\r\n- https://stackoverflow.com/questions/10488775/sdl-h-no-such-file-or-directory-found-when-compiling\r\n\r\n<details>\r\n<summary>\r\nvideo-compare.nix\r\n</summary>\r\n\r\n```nix\r\n{ lib\r\n, stdenv\r\n, llvmPackages\r\n, fetchFromGitHub\r\n, ffmpeg\r\n#, ffmpeg-full\r\n, SDL2\r\n, SDL2_ttf\r\n}:\r\n\r\nstdenv.mkDerivation rec {\r\n  pname = \"video-compare\";\r\n  version = \"20240525\";\r\n\r\n  src = fetchFromGitHub {\r\n    owner = \"pixop\";\r\n    repo = \"video-compare\";\r\n    rev = version;\r\n    hash = \"sha256-OcOFwIiwShQs+wjFgAz5rPDQou/ZC+FGO3ITeuCAbgQ=\";\r\n  };\r\n\r\n  # fix: error: SDL.h: No such file or directory\r\n  # https://ask.replit.com/t/sdl-in-c-has-a-problem-with-sdl-ttf-h-not-finding-sdl-h/80983/6\r\n  CPATH = lib.makeSearchPath \"include/SDL2\" [ SDL2.dev ];\r\n  CFLAGS = \"-lSDL2 -lSDL2_ttf\";\r\n\r\n  buildInputs = [\r\n    ffmpeg\r\n    #ffmpeg-full\r\n    SDL2\r\n    SDL2_ttf\r\n  ];\r\n\r\n  postPatch = ''\r\n    substituteInPlace makefile \\\r\n      --replace-fail \\\r\n        \"BINDIR = /usr/local/bin/\" \\\r\n        \"BINDIR = $out/bin/\"\r\n  '';\r\n\r\n  preInstall = ''\r\n    mkdir -p $out/bin\r\n  '';\r\n\r\n  meta = with lib; {\r\n    description = \"Split screen video comparison tool using FFmpeg and SDL2\";\r\n    homepage = \"https://github.com/pixop/video-compare\";\r\n    license = licenses.gpl2Only;\r\n    maintainers = with maintainers; [ ];\r\n    mainProgram = \"video-compare\";\r\n    platforms = platforms.all;\r\n  };\r\n}\r\n```\r\n\r\n</details>\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-05-30T21:17:54Z",
+    "updated_at": "2024-05-30T21:38:17Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/61",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "soulseekqt: app state is not saved to $HOME",
+    "body": "on every run of `soulseekqt`\r\nit asks for new username and password\r\nand asks for new folders to share\r\n\r\nconfig from the last run is lost\r\n\r\nping @eigengrau",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-06-04T09:40:32Z",
+    "updated_at": "2024-06-04T09:40:32Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/62",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "nix-init: Failed to generate lock file to Cargo.lock",
+    "body": "nix-init fails on [cratetorrent](https://github.com/vimpunk/cratetorrent) - last commit 2021\r\n\r\n```\r\n$ nix-init pkgs/applications/networking/p2p/cratetorrent/default.nix --url https://github.com/vimpunk/cratetorrent\r\nEnter tag or revision (defaults to 34aa13835872a14f00d4a334483afff79181999f)\r\n❯ 34aa13835872a14f00d4a334483afff79181999f\r\nEnter version\r\n❯ unstable-2021-12-19\r\nEnter pname\r\n❯ cratetorrent\r\nHow should this package be built?\r\n❯ buildRustPackage - cargoLock\r\n    Updating crates.io index\r\n2024-06-17T08:46:13.900875Z ERROR nix_init::lang::rust: Failed to generate lock file to pkgs/applications/networking/p2p/cratetorrent/Cargo.lock\r\n```\r\n\r\ncratetorrent is broken: https://github.com/vimpunk/cratetorrent/issues/115\r\n\r\n> It might be worth upgrading to bitvec to 1.0\r\n\r\nat least nix-init should print the full error message\r\n\r\n```\r\n$ git clone --depth=1 https://github.com/vimpunk/cratetorrent\r\n$ cd cratetorrent\r\n$ cargo generate-lockfile\r\n    Updating crates.io index\r\nerror: failed to select a version for the requirement `funty = \"~1.2\"`\r\ncandidate versions found which didn't match: 3.0.0-rc2, 3.0.0-rc1, 2.0.0, ...\r\nlocation searched: crates.io index\r\nrequired by package `bitvec v0.22.0`\r\n    ... which satisfies dependency `bitvec = \"^0.22\"` of package `cratetorrent v0.2.0 (/run/user/1000/tmp.7NV0nb4Jpt/cratetorrent/cratetorrent)`\r\n    ... which satisfies path dependency `cratetorrent` of package `cratetorrent-cli v0.2.0 (/run/user/1000/tmp.7NV0nb4Jpt/cratetorrent/cratetorrent-cli)`\r\nif you are looking for the prerelease package it needs to be specified explicitly\r\n    funty = { version = \"3.0.0-rc2\" }\r\nperhaps a crate was updated and forgotten to be re-vendored?\r\n```\r\n\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-06-17T09:46:32Z",
+    "updated_at": "2024-06-17T09:46:32Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/63",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "buildDotnetModule: error NETSDK1100: set the EnableWindowsTargeting property to true",
+    "body": "```\r\n/nix/store/3p2v489xyw5kzbrc4mk1mya8sdbcpkyx-dotnet-sdk-6.0.421/\r\nsdk/6.0.421/Sdks/Microsoft.NET.Sdk/targets/\r\nMicrosoft.NET.Sdk.FrameworkReferenceResolution.targets(90,5):\r\nerror NETSDK1100:\r\nTo build a project targeting Windows on this operating system,\r\nset the EnableWindowsTargeting property to true.\r\n[/tmp/deps-audioalign-RgzrB2/src/AudioAlign/AudioAlign.csproj]\r\n```\r\n\r\n[AudioAlign.csproj](https://github.com/protyposis/AudioAlign/raw/main/AudioAlign/AudioAlign.csproj)\r\n\r\n```xml\r\n﻿<Project Sdk=\"Microsoft.NET.Sdk\">\r\n  <PropertyGroup>\r\n    <TargetFramework>net6.0-windows</TargetFramework>\r\n    <OutputType>WinExe</OutputType>\r\n    <UseWPF>true</UseWPF>\r\n```\r\n\r\nlooks like a \"windows only\" project\r\n\r\nlets cross-compile and run with wine\r\n\r\n```nix\r\nbuildDotnetModule {\r\n  postPatch = ''\r\n    substituteInPlace AudioAlign/AudioAlign.csproj \\\r\n      --replace \\\r\n        \"<TargetFramework>net6.0-windows</TargetFramework>\" \\\r\n        \"<TargetFramework>net6.0-windows</TargetFramework><EnableWindowsTargeting>true</EnableWindowsTargeting>\" \\\r\n  '';\r\n```\r\n\r\n```\r\n$ ./result/bin/AudioAlign\r\nYou must install or update .NET to run this application.\r\n\r\nApp: /nix/store/52r8m784kq37b8vpgqd9x892w9975n9r-audioalign-1.7.0/lib/audioalign/AudioAlign\r\nArchitecture: x64\r\nFramework: 'Microsoft.WindowsDesktop.App', version '6.0.0' (x64)\r\n.NET location: /nix/store/l382qszrramhs6x8iqjkjl7fgizlyjy9-dotnet-runtime-6.0.29\r\n\r\nNo frameworks were found.\r\n\r\nLearn about framework resolution:\r\nhttps://aka.ms/dotnet/app-launch-failed\r\n\r\nTo install missing framework, download:\r\nhttps://aka.ms/dotnet-core-applaunch?framework=Microsoft.WindowsDesktop.App&framework_version=6.0.0&arch=x64&rid=nixos.24.05-x64\r\n```\r\n\r\nhmm ... now how to run `wine dotnet.exe AudioAlign`\r\n\r\n[WineHQ - .NET Framework](https://appdb.winehq.org/objectManager.php?sClass=application&iId=2586)\r\n\r\n[Installing .NET 6.0 in wine?](https://old.reddit.com/r/linuxquestions/comments/xh1ysn/installing_net_60_in_wine/)\r\n\r\n> winetricks -q dotnetdesktop6\r\n\r\n[Installing .NET 4.0 Framework on Wine using Winetricks](https://superuser.com/questions/476872/installing-net-4-0-framework-on-wine-using-winetricks)\r\n\r\n> winetricks list-installed\r\n\r\n[How to actually use .NET Framework under Wine environemnt?](https://forum.winehq.org/viewtopic.php?t=37039&sid=aa89cc5fa75d10fa3d4695a9704f9760)\r\n\r\n\r\n\r\nhttps://nixos.wiki/wiki/DotNET\r\n\r\nhttps://learn.microsoft.com/en-us/dotnet/core/tools/sdk-errors/netsdk1100\r\n\r\nhttps://stackoverflow.com/questions/77715442/how-to-solve-this-error-set-the-enablewindowstargeting-property-to-true-netsd\r\n\r\n> By default, .NET downloads all targeting packages but target and runtime packages are not automatically downloaded on unsupported platforms. These can be wrapped in cross-target downloads by setting the EnableWindowsTargeting property.\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-06-21T18:26:56Z",
+    "updated_at": "2024-06-21T19:32:09Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/64",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "nix-init silently fails at API rate limit exceeded",
+    "body": "```\r\n$ nix-init pkgs/python3/pkgs/dephell-links/default.nix --url https://github.com/dephell/dephell_links\r\nEnter tag or revision (defaults to v.0.1.5)\r\n❯ v.0.1.5\r\nEnter version\r\n❯ 0.1.5\r\nEnter pname\r\n❯ dephell-links\r\nError: command exited with exit status: 1\r\nstdout:\r\n\r\nstderr:\r\n$ nix flake prefetch --extra-experimental-features 'nix-command flakes' --json github:dephell/dephell_links/v.0.1.5\r\nerror:\r\n       … while fetching the input 'github:dephell/dephell_links/v.0.1.5'\r\n\r\n       error: unable to download 'https://api.github.com/repos/dephell/dephell_links/commits/v.0.1.5': HTTP error 403\r\n\r\n       response body:\r\n\r\n       {\"message\":\"API rate limit exceeded for 123.123.123.123. (But here's the good news: Authenticated requests get a higher rate limit. Check out the documentation for more details.)\",\"documentation_url\":\"https://docs.github.com/rest/overview/resources-in-the-rest-api#rate-limiting\"}\r\nError: command exited with exit status: 1\r\n\r\n\r\n~/src/milahu/nur-packages $ nix-init pkgs/python3/pkgs/dephell-links/default.nix --url https://github.com/dephell/dephell_links\r\nEnter tag or revision (defaults to )\r\n❯   \r\nError: Interrupted\r\n```\r\n\r\nexpected: nix-init should suggest the tag `v.0.1.5`\r\n\r\n... or nix-init should fail early, not after i enter tag, version, pname\r\n\r\n```\r\n$ nix-init pkgs/python3/pkgs/dephell-links/default.nix --url https://github.com/dephell/dephell_links\r\nEnter tag or revision (defaults to )\r\n❯ v.0.1.5\r\nEnter version\r\n❯ 0.1.5\r\nEnter pname\r\n❯ dephell-links\r\nError: command exited with exit status: 1\r\nstdout:\r\n\r\nstderr:\r\n$ nix flake prefetch --extra-experimental-features 'nix-command flakes' --json github:dephell/dephell_links/v.0.1.5\r\nerror:\r\n       … while fetching the input 'github:dephell/dephell_links/v.0.1.5'\r\n\r\n       error: unable to download 'https://api.github.com/repos/dephell/dephell_links/commits/v.0.1.5': HTTP error 403\r\n\r\n       response body:\r\n\r\n       {\"message\":\"API rate limit exceeded for 79.253.18.58. (But here's the good news: Authenticated requests get a higher rate limit. Check out the documentation for more details.)\",\"documentation_url\":\"https://docs.github.com/rest/overview/resources-in-the-rest-api#rate-limiting\"}\r\nError: command exited with exit status: 1\r\n```\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-06-22T12:20:57Z",
+    "updated_at": "2024-06-22T12:20:57Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/65",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "python3.pkgs.eyed3: add global alias eyed3",
+    "body": "let me do\r\n\r\n```\r\nnix-shell -p eyed3\r\n```\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-06-23T18:04:52Z",
+    "updated_at": "2024-06-23T18:04:52Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/66",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "mmv manpage: ./build-aux/mmv-help2man-wrapper: line 6: ./mmv: not found",
+    "body": null,
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-07-03T08:09:07Z",
+    "updated_at": "2024-07-03T08:09:07Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/67",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "autoPatchelf: dont add workdir to rpath",
+    "body": "```\r\nsetting interpreter of native/linux/x64/tor.tar.xz/tor\r\nsearching for dependencies of native/linux/x64/tor.tar.xz/tor\r\n    libz.so.1 -> found: /nix/store/9nk7bsdlsmmnj96bivbvgqy491p65jdq-libz-1.2.8.2015.12.26-unstable-2018-03-31/lib\r\n    libevent-2.1.so.7 -> found: /build/source/native/linux/x64/tor.tar.xz\r\n    libssl.so.3 -> found: /build/source/native/linux/x64/tor.tar.xz\r\n    libcrypto.so.3 -> found: /build/source/native/linux/x64/tor.tar.xz\r\nsetting RPATH to: /nix/store/9nk7bsdlsmmnj96bivbvgqy491p65jdq-libz-1.2.8.2015.12.26-unstable-2018-03-31/lib:/build/source/native/linux/x64/tor.tar.xz\r\n```\r\n\r\nthe executable `tor` and the dependencies `libevent-2.1.so.7` ... are in the same directory\r\n\r\nthe path `/build/source/native/linux/x64/tor.tar.xz/` is only valid on build time, but not on run time\r\n\r\nadding workdir to rpath is ok if the path is also valid on run time\r\nin effect, if workdir is in `/nix/store`\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-07-14T10:08:38Z",
+    "updated_at": "2024-07-14T10:23:37Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/68",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "haveno: add package",
+    "body": "fix https://github.com/NixOS/nixpkgs/issues/293842\r\n\r\nbased on https://github.com/NixOS/nixpkgs/pull/311314\r\nbased on https://github.com/tadfisher/gradle2nix/pull/62\r\n\r\ndraft in [haveno/default.nix](https://github.com/milahu/nur-packages/raw/master/pkgs/applications/blockchains/haveno/default.nix)\r\n\r\n```\r\nnix-shell -p nur.repos.milahu.haveno\r\n```\r\n\r\n### haveno is not working\r\n\r\nthe desktop app is working, but it fails to connect to seednodes\r\ni dont know whether this is a problem with the client or a problem with the haveno network\r\n\r\nthe gui statusbar says: no seed nodes available\r\n\r\nthe seednode seems offline:\r\nbugc27z7lqjgpwmhbuu3kuwoq2bhailj573r32jm5ydwrcqrwjtblnid.onion:1002\r\n\r\n```\r\n$ torsocks nc bugc27z7lqjgpwmhbuu3kuwoq2bhailj573r32jm5ydwrcqrwjtblnid.onion 1002\r\n1720959904 ERROR torsocks[402405]: Host unreachable (in socks5_recv_connect_reply() at socks5.c:539)\r\n\r\n$ curl --proxy socks5h://user$RANDOM@127.0.0.1:9050 http://bugc27z7lqjgpwmhbuu3kuwoq2bhailj573r32jm5ydwrcqrwjtblnid.onion:1002\r\ncurl: (97) Can't complete SOCKS5 connection to bugc27z7lqjgpwmhbuu3kuwoq2bhailj573r32jm5ydwrcqrwjtblnid.onion. (4)\r\n```\r\n\r\nthe main version of haveno is broken by design\r\nbecause the authors want to separate development from deployment\r\nso im using the [haveno-reto](https://github.com/retoaccess1/haveno-reto) fork\r\nwhich has seednodes and different keys\r\nbut otherwise its exactly the same code\r\n\r\n### is haveno a scam\r\n\r\nit is possible that haveno is a scam, a waste of time\r\n\r\nhttps://old.reddit.com/r/Monero/comments/1cqf02p/haveno_mainnet_documentation_released/\r\n\r\n> its already running on mainnet however not usable because there's no mods.\r\n\r\n> how do you propose to run a mainnet network from the official repository without being exposed to significant legal risk?\r\n\r\nhttps://old.reddit.com/r/Monero/comments/1e60nc8/haveno_instances_experience/\r\n\r\n> Haveno Reto is the only running Haveno network that everybody knows about\r\n\r\nhttps://github.com/haveno-dex/haveno/issues/1142\r\n\r\n> im [building](https://github.com/milahu/nur-packages/raw/master/pkgs/applications/blockchains/haveno/default.nix) haveno from source, but i guess it requires more patching\r\n> maybe there are some more libs or bins hidden in jars\r\n> which dont run on nixos by default and cause silent errors\r\n> but i rather invest my time in [basicswap](https://github.com/basicswap/basicswap)\r\n\r\n> having a list of N seednodes is not \"decentralized\"\r\n> haveno is a pipe dream similar to [openbazaar](https://en.wikipedia.org/wiki/OpenBazaar)\r\n\r\n\r\n[haveno/readme.txt](https://github.com/milahu/nur-packages/raw/master/pkgs/applications/blockchains/haveno/readme.txt)\r\n\r\n### future work\r\n\r\ni already spent too much time on this...\r\n\r\nif someone wants to get their hands dirty on this\r\ni would recommend to first try a binary release of [haveno-reto](https://github.com/retoaccess1/haveno-reto)\r\nmaybe with `steam-run`, maybe with [buildFHSEnv](https://ryantm.github.io/nixpkgs/builders/special/fhs-environments/)\r\nmaybe on a different linux distro like [arch linux](https://aur.archlinux.org/packages/haveno-reto)\r\nto verify that `haveno-reto` is actually working\r\n\r\nthen i would modify [gradle2nix](https://github.com/tadfisher/gradle2nix/pull/62) so that my [mkOverride](https://github.com/milahu/nur-packages/raw/master/pkgs/applications/blockchains/haveno/default.nix) function is applied to all jar files\r\nmaybe there are still some libs or bins that need to be patched\r\notherwise `haveno` silently fails... but that is an optimistic view \r\n\r\nping @Kreyren @linsui @emmanuelrosa @chayleaf @surfaceflinger @TanvirOnGH @shortwavesurfer2009 @nahuhh \r\n\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-07-18T05:52:39Z",
+    "updated_at": "2024-08-02T11:47:04Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/69",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "unpaper: add manpage",
+    "body": "```\r\n$ unpaper --help\r\nunpaper 7.0.0\r\nLicense GPLv2: GNU GPL version 2.\r\nThis is free software: you are free to change and redistribute it.\r\nThere is NO WARRANTY, to the extent permitted by law.\r\n\r\nUsage: unpaper [options] <input-file(s)> <output-file(s)>\r\n\r\nFilenames may contain a formatting placeholder starting with '%%' to insert a\r\npage counter for multi-page processing. E.g.: 'scan%%03d.pbm' to process files\r\nscan001.pbm, scan002.pbm, scan003.pbm etc.\r\n\r\nSee 'man unpaper' for options details\r\nReport bugs at https://github.com/unpaper/unpaper/issues\r\n\r\n\r\n$ man unpaper\r\nNo manual entry for unpaper\r\n```\r\n\r\nmanpage source\r\nhttps://github.com/unpaper/unpaper/raw/main/doc/unpaper.1.rst\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-07-18T16:56:25Z",
+    "updated_at": "2024-07-18T16:57:50Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/70",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "nix-init: show dates of git tags",
+    "body": "also sort commits and tags by date\r\nso i can prefer a recent commit (weeks old) over an old tag (years old)\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-07-18T20:20:26Z",
+    "updated_at": "2024-07-18T20:20:26Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/71",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "python3.pkgs.ruff: init",
+    "body": "fixed in https://github.com/milahu/nur-packages/commit/fb8879ebef015f1e74dc87c330a35c23952c4d2c\r\n\r\nneeded for [python3.pkgs.openapi-python-client](https://github.com/milahu/nur-packages/raw/master/pkgs/python3/pkgs/openapi-python-client/default.nix)\r\n\r\nping ruff maintainer @figsoda \r\n(im pretty sure that idiot has blocked me on github...)\r\n\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-07-27T17:04:16Z",
+    "updated_at": "2024-07-27T17:04:16Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/72",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "nano-node: add package",
+    "body": "currently nixpkgs has only [nano-wallet](https://github.com/NixOS/nixpkgs/raw/master/pkgs/applications/blockchains/nano-wallet/default.nix)\r\nwhich is only one tool of the full `nano-node` package\r\n\r\ni have the full `nano-node` at [nur.repos.milahu.nano-node](https://github.com/milahu/nur-packages/raw/master/pkgs/applications/blockchains/nano-node/default.nix)\r\nbased on https://github.com/nanocurrency/nano-node/pull/4679\r\n\r\ncurrently [nano_rpc is broken](https://github.com/nanocurrency/nano-node/issues/4691)\r\nbut that has low priority, its just a rpc client\r\n\r\nping maintainer @jluttine\r\n\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-08-04T07:37:51Z",
+    "updated_at": "2024-08-04T07:56:46Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/73",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "services.prometheus: refactor to modular prometheus exporters",
+    "body": "currently im trying to add `services.prometheus.exporters.qbittorrent`\r\nto fix [Package request: prometheus-qbittorrent-exporter](https://github.com/NixOS/nixpkgs/issues/264637)\r\n\r\n### actual\r\n\r\nthis requires\r\nadding `nixos/modules/services/monitoring/prometheus/exporters/qbittorrent.nix`\r\npatching `nixos/modules/services/monitoring/prometheus/exporters.nix`\r\ndisabling the module `services/monitoring/prometheus/default.nix`\r\nimporting `prometheus/default.nix` from the patched nixpkgs\r\n\r\n\r\n```nix\r\n{ config, pkgs, lib, modulesPath, inputs, ... }:\r\n\r\n{\r\n  # override nixos modules\r\n  # https://stackoverflow.com/a/46407944/10440128\r\n  # see also: nixos/modules/module-list.nix\r\n  disabledModules = [\r\n\r\n    # no. error: The option `services.prometheus.exporters.qbittorrent' does not exist.\r\n    # override services.prometheus\r\n    #\"services/monitoring/prometheus/default.nix\"\r\n\r\n    # override services.prometheus.exporters\r\n    \"services/monitoring/prometheus/exporters.nix\"\r\n  ];\r\n\r\n  imports = [\r\n    ./hardware-configuration.nix\r\n\r\n    # no. error: The option `services.prometheus.exporters.qbittorrent' does not exist.\r\n    # override services.prometheus\r\n    #./modules/services/monitoring/prometheus/default.nix\r\n\r\n    # override services.prometheus.exporters\r\n    ./modules/services/monitoring/prometheus/exporters.nix\r\n  ];\r\n```\r\n\r\n### expected\r\n\r\nideally this should work without patching `prometheus/exporters.nix`\r\nonly by adding `prometheus/exporters/qbittorrent.nix` to `imports`\r\n\r\n`/etc/nixos/configuration.nix`\r\n\r\n```nix\r\n{ config, pkgs, lib, modulesPath, inputs, ... }:\r\n\r\n{\r\n  imports = [\r\n    ./hardware-configuration.nix\r\n\r\n    # TODO implement modular prometheus exporters\r\n    # add services.prometheus.exporters.qbittorrent\r\n    ./modules/services/monitoring/prometheus/exporters/qbittorrent.nix\r\n  ];\r\n\r\n  services.grafana = {\r\n    enable = true;\r\n    declarativePlugins = with pkgs.grafanaPlugins; [\r\n      grafana-piechart-panel # for prometheus-qbittorrent-exporter\r\n    ];\r\n    settings = {\r\n      # ...\r\n    };\r\n  };\r\n\r\n  services.prometheus = {\r\n    enable = true;\r\n    port = 9001;\r\n    # /var/lib/prometheus2/\r\n    #retentionTime = \"15d\"; # default -> 80 MB\r\n    retentionTime = \"740d\"; # 2 years -> 4 GB\r\n    exporters = {\r\n      node = {\r\n        enable = true;\r\n        enabledCollectors = [ \"systemd\" ];\r\n        port = 9002;\r\n      };\r\n      qbittorrent = {\r\n        enable = true;\r\n        port = 9003;\r\n        qbittorrentPort = 1952;\r\n        package = pkgs.nur.repos.milahu.prometheus-qbittorrent-exporter;\r\n      };\r\n    };\r\n    scrapeConfigs = [\r\n      {\r\n        job_name = \"chrysalis\";\r\n        static_configs = [{\r\n          targets = [\r\n            \"127.0.0.1:${toString config.services.prometheus.exporters.node.port}\"\r\n            \"127.0.0.1:${toString config.services.prometheus.exporters.qbittorrent.port}\"\r\n          ];\r\n        }];\r\n      }\r\n    ];\r\n  };\r\n```\r\n\r\n### possible solution\r\n\r\nadd a `mkPrometheusExporter` function\r\nso `prometheus/exporters/qbittorrent.nix` looks like\r\n\r\n```nix\r\n{ lib\r\n, mkPrometheusExporter\r\n}:\r\n\r\nmkPrometheusExporter {\r\n  name = \"qbittorrent\";\r\n  # ...\r\n}\r\n```\r\n\r\nprobably this would require\r\nadding all prometheus exporters to `nixos/modules/module-list.nix`\r\n\r\n### keywords\r\n\r\n- decentralization of nixpkgs\r\n- modularization of nixpkgs\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-08-26T09:24:12Z",
+    "updated_at": "2024-08-26T10:57:20Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/74",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "prometheus-qbittorrent-exporter: init at 1.5.1",
+    "body": "fix https://github.com/NixOS/nixpkgs/issues/264637\r\n\r\ndone in\r\nhttps://github.com/milahu/nur-packages/commit/2fff80e5bff751bfa3ca6b23466f09a9b7fd1bdc\r\nhttps://github.com/milahu/nur-packages/commit/7ef65e078e3a5e378a487cf537fd4dd7499eedc1\r\n\r\nping @riley-martine @infinisil",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-08-27T06:37:44Z",
+    "updated_at": "2024-08-27T06:37:44Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/75",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "spotify: broken on wayland: Alloy bootstrap is deprecated",
+    "body": "spotify fails to start, only shows a deprecation warning\r\n\r\n```\r\n$ nix-shell -p spotify\r\n\r\n$ spotify\r\n[0912/154300.029082:WARNING:main_runner.cc(261)] Alloy bootstrap is deprecated and will be removed in ~M127. See https://github.com/chromiumembedded/cef/issues/3685\r\n\r\n$ env -i HOME=\"$HOME\" $(which spotify)\r\n[0912/154011.320615:WARNING:main_runner.cc(261)] Alloy bootstrap is deprecated and will be removed in ~M127. See https://github.com/chromiumembedded/cef/issues/3685\r\n\r\n$ env -i $(which spotify)\r\nSegmentation fault (core dumped)\r\n```\r\n\r\n\r\nupstream issue\r\nhttps://community.spotify.com/t5/Desktop-Linux/Debian-Client-will-not-start/td-p/6318901\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-09-12T13:44:02Z",
+    "updated_at": "2024-09-12T13:44:02Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/76",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "nixos configuration: home-manager: two-way sync with dotfiles",
+    "body": "when i change dotfiles, these changes should be synced back to my home-manager config\r\nso i can use all the apps' default graphical config editors to modify my nixos config\r\n\r\n### example\r\n\r\nplasma6 > panel > panel configuration > disable floating\r\n\r\n```diff\r\n--- a/.config/plasmashellrc\r\n+++ b/.config/plasmashellrc\r\n@@ -9,7 +9,7 @@\r\n Number of Actions=0\r\n \r\n [PlasmaViews][Panel 2]\r\n-floating=1\r\n+floating=0\r\n \r\n [PlasmaViews][Panel 2][Defaults]\r\n thickness=40\r\n```\r\n\r\nthis change from default to non-default config should add\r\nsomething like this to my home-manager config\r\n\r\n```nix\r\n{\r\n  home-config.\"user\" = {\r\n    plasma6 = {\r\n      # /home/user/.config/plasmashellrc\r\n      plasmashellrc = {\r\n        PlasmaViews = {\r\n          # [PlasmaViews][Panel 2]\r\n          \"Panel 2\" = {\r\n            # floating=0\r\n            floating = 0;\r\n          };\r\n        };\r\n      };\r\n    };\r\n  };\r\n}\r\n```\r\n\r\nafter `nixos-rebuild switch` the generated file `/home/user/.config/plasmashellrc`\r\nshould be writable by the user, so he can continue modifying the config\r\n\r\n### related\r\n\r\n[NixOS configuration editors](https://wiki.nixos.org/wiki/NixOS_configuration_editors)\r\n\r\n### keywords\r\n\r\n- graphical nixos configuration editor\r\n- graphical nixos config editor\r\n- nixos config GUI\r\n- nixos GUI\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-09-12T20:15:49Z",
+    "updated_at": "2024-09-12T20:15:50Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/79",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "nixos-rebuild switch should stop nfs-server",
+    "body": "currently, when i change `services.nfs.server.enable` from `true` to `false`\r\nthen `nfs-server.service` is still active, still listening on port 2049\r\n\r\n```\r\n$ systemctl status nfs-server.service | grep Active\r\n     Active: active (exited) since Wed 2024-09-11 16:31:03 CEST; 1 week 6 days ago\r\n\r\n$ netstat -lntup | grep 2049\r\ntcp        0      0 0.0.0.0:2049            0.0.0.0:*               LISTEN      -                   \r\ntcp6       0      0 :::2049                 :::*                    LISTEN      -                   \r\n\r\n$ nmap -p2049 192.168.178.20 | grep open\r\n2049/tcp open  nfs\r\n```\r\n\r\nworkaround: manuall stop all NFS services\r\n\r\n```\r\nsudo systemctl stop nfs-server.service rpcbind.socket rpcbind.service\r\n```\r\n\r\n```\r\n$ systemctl status nfs-server.service | grep Active\r\n     Active: inactive (dead) since Wed 2024-09-25 11:13:01 CEST; 10s ago\r\n```\r\n",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": "2024-09-27T19:15:07Z",
+    "created_at": "2024-09-25T09:32:04Z",
+    "updated_at": "2024-09-27T19:15:08Z"
+  },
+  {
+    "type": "issue",
+    "url": "https://github.com/milahu/nixpkgs/issues/80",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "user": "https://github.com/milahu",
+    "title": "cudominer: add package",
+    "body": "cryptocurrency miner from https://www.cudominer.com/cudo-miner-cryptocurrency-mining-software/\r\n\r\ndraft in https://github.com/milahu/nur-packages/commit/843fed83ca8ed202713cf8ab916bf433c4cf68cd\r\n\r\nstatus: fails to run\r\n\r\nreadme.txt\r\n\r\n```\r\n$ ./result/bin/cudominercli\r\nPkg: Error reading from file.\r\n\r\n$ strace ./result/bin/cudominercli 2>&1 | grep open\r\n...\r\nopenat(AT_FDCWD, \"/sys/fs/cgroup/memory/memory.limit_in_bytes\", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)\r\n...\r\n\r\n$ ls /sys/fs/cgroup/memory.* | cat\r\n/sys/fs/cgroup/memory.numa_stat\r\n/sys/fs/cgroup/memory.pressure\r\n/sys/fs/cgroup/memory.reclaim\r\n/sys/fs/cgroup/memory.stat\r\n\r\n\r\n\r\n# https://stackoverflow.com/questions/65646317/sys-fs-cgroup-memory-memory-limit-in-bytes-not-present-in-fedora-33\r\n\r\n$ findmnt /sys/fs/cgroup\r\nTARGET         SOURCE  FSTYPE  OPTIONS\r\n/sys/fs/cgroup cgroup2 cgroup2 rw,nosuid,nodev,noexec,relatime,nsdelegate,memory_recursiveprot\r\n\r\nThe issue is related to new cgroup v2. To resolve this, revert cgroup to v1:\r\n\r\nsudo sed -i '/^GRUB_CMDLINE_LINUX/ s/\"$/ systemd.unified_cgroup_hierarchy=0\"/' /etc/default/grub\r\n\r\nand reboot.\r\n\r\nAfter this /sys/fs/cgroup/memory/memory.limit_in_bytes will be present.\r\n```\r\n\r\nissue reported in discord chat https://discord.com/channels/541993453467336704/541993454180237333/1291413717568716862\r\n\r\nupstream issue https://github.com/NixOS/nixpkgs/issues/333219 - ping @Nika03\r\n\r\nthe download url for `install.sh` seems to be stable for different users at cudominer.com",
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "closed_at": null,
+    "created_at": "2024-10-03T14:48:00Z",
+    "updated_at": "2024-10-03T17:45:44Z"
+  }
+]

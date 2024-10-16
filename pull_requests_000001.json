@@ -1,0 +1,134 @@
+[
+  {
+    "type": "pull_request",
+    "url": "https://github.com/milahu/nixpkgs/pull/1",
+    "user": "https://github.com/milahu",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "title": "ignore",
+    "body": "ignore",
+    "base": {
+      "ref": "master",
+      "sha": "3cd570dfcd3f7be23e816f91dccee0d7637759cd",
+      "user": "https://github.com/milahu",
+      "repo": "https://github.com/milahu/nixpkgs"
+    },
+    "head": {
+      "ref": "unpackfile-ignore-timestamp-warnings",
+      "sha": "a43e8ad8b1085c9f92f79d71ef49b24531398de2",
+      "user": "https://github.com/milahu",
+      "repo": "https://github.com/milahu/nixpkgs"
+    },
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "review_requests": [
+
+    ],
+    "close_issue_references": [
+
+    ],
+    "work_in_progress": false,
+    "merged_at": null,
+    "closed_at": "2021-09-09T18:11:23Z",
+    "created_at": "2021-09-09T18:07:31Z",
+    "merge_commit_sha": "c543a44958f8866d7452aad5ad9745d92cc1f186"
+  },
+  {
+    "type": "pull_request",
+    "url": "https://github.com/milahu/nixpkgs/pull/77",
+    "user": "https://github.com/milahu",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "title": "prometheus.exporters.qbittorrent: init",
+    "body": "fix https://github.com/NixOS/nixpkgs/issues/264637\r\n\r\nexample config, using [nur.repos.milahu.prometheus-qbittorrent-exporter](https://github.com/milahu/nur-packages/raw/master/pkgs/servers/monitoring/prometheus/qbittorrent-exporter.nix)\r\n\r\n<details>\r\n<summary>\r\n/etc/nixos/configuration.nix\r\n</summary>\r\n\r\n```nix\r\n{\r\n  # override nixos modules\r\n  # https://stackoverflow.com/a/46407944/10440128\r\n  disabledModules = [\r\n    \"services/monitoring/prometheus/exporters.nix\"\r\n  ];\r\n\r\n  imports = [\r\n    /home/user/src/nixpkgs/nixos/modules/services/monitoring/prometheus/exporters.nix\r\n  ];\r\n\r\n  # https://nixos.wiki/wiki/Grafana\r\n  # nixpkgs/nixos/modules/services/monitoring/grafana.nix\r\n  # https://xeiaso.net/blog/prometheus-grafana-loki-nixos-2020-11-20/\r\n  # http://localhost:3000/\r\n  # login: admin:admin\r\n  services.grafana = {\r\n    enable = true;\r\n    declarativePlugins = with pkgs.grafanaPlugins; [\r\n      grafana-piechart-panel # for prometheus-qbittorrent-exporter\r\n    ];\r\n  };\r\n\r\n  # https://xeiaso.net/blog/prometheus-grafana-loki-nixos-2020-11-20/\r\n  services.prometheus = {\r\n    enable = true;\r\n    port = 9001;\r\n    # /var/lib/prometheus2/\r\n    #retentionTime = \"15d\"; # default -> 80 MB\r\n    retentionTime = \"740d\"; # 2 years -> 4 GB\r\n    exporters = {\r\n      node = {\r\n        enable = true;\r\n        enabledCollectors = [ \"systemd\" ];\r\n        port = 9002;\r\n      };\r\n      qbittorrent = {\r\n        enable = true;\r\n        port = 9003;\r\n        qbittorrentPort = 1952;\r\n        package = pkgs.nur.repos.milahu.prometheus-qbittorrent-exporter;\r\n      };\r\n    };\r\n    scrapeConfigs = [\r\n      {\r\n        job_name = \"chrysalis\";\r\n        static_configs = [{\r\n          targets = [\r\n            \"127.0.0.1:${toString config.services.prometheus.exporters.node.port}\"\r\n            \"127.0.0.1:${toString config.services.prometheus.exporters.qbittorrent.port}\"\r\n          ];\r\n        }];\r\n      }\r\n    ];\r\n  };\r\n}\r\n```\r\n\r\n</details>\r\n\r\n\r\nping @riley-martine \r\n\r\nfeel free to create a PR for https://github.com/NixOS/nixpkgs\r\ni am banned for \"hatespeech\"\r\n",
+    "base": {
+      "ref": "master",
+      "sha": "25ae33d05631685f5c80cdd57ee5e92536eb3813",
+      "user": "https://github.com/milahu",
+      "repo": "https://github.com/milahu/nixpkgs"
+    },
+    "head": {
+      "ref": "add-prometheus-exporter-qbittorrent",
+      "sha": "3f7b4f1ba5d98d187ffdfb02a20fa115227c8872",
+      "user": "https://github.com/milahu",
+      "repo": "https://github.com/milahu/nixpkgs"
+    },
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "review_requests": [
+
+    ],
+    "close_issue_references": [
+      {
+        "issue": "https://github.com/NixOS/nixpkgs/issues/264637",
+        "issue_repository": "https://github.com/NixOS/nixpkgs",
+        "actor": "https://github.com/milahu",
+        "source": "xref",
+        "created_at": "2024-09-20T09:19:00Z"
+      }
+    ],
+    "work_in_progress": true,
+    "merged_at": null,
+    "closed_at": null,
+    "created_at": "2024-09-20T09:18:58Z",
+    "merge_commit_sha": "1159ea63ea1053b8072b27833d49a2a3b89a33f5"
+  },
+  {
+    "type": "pull_request",
+    "url": "https://github.com/milahu/nixpkgs/pull/78",
+    "user": "https://github.com/milahu",
+    "repository": "https://github.com/milahu/nixpkgs",
+    "title": "add nixos option virtualisation.waydroid.package",
+    "body": "ping @CajuM @Ma27 ",
+    "base": {
+      "ref": "master",
+      "sha": "25ae33d05631685f5c80cdd57ee5e92536eb3813",
+      "user": "https://github.com/milahu",
+      "repo": "https://github.com/milahu/nixpkgs"
+    },
+    "head": {
+      "ref": "add-nixos-virtualisation-waydroid-package",
+      "sha": "b04b248fd0c1594b1a09ca8dc9c7ddabcaf69dc8",
+      "user": "https://github.com/milahu",
+      "repo": "https://github.com/milahu/nixpkgs"
+    },
+    "assignee": null,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "labels": [
+
+    ],
+    "reactions": [
+
+    ],
+    "review_requests": [
+
+    ],
+    "close_issue_references": [
+
+    ],
+    "work_in_progress": true,
+    "merged_at": null,
+    "closed_at": null,
+    "created_at": "2024-09-20T12:36:54Z",
+    "merge_commit_sha": "8b65f97381651b6b213b9dde6a0fa87df6a0d1b5"
+  }
+]
